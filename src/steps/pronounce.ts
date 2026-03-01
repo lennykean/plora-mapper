@@ -3,7 +3,7 @@ import { lookup } from "../data/wiktionary-api.ts";
 import tokenize from "./tokenize.ts";
 import type { StepOptions } from "./index.ts";
 
-function pronunciationKey(entry: WiktionaryEntry): string {
+export function pronunciationKey(entry: WiktionaryEntry): string {
   return entry.pronunciations.map((p) => p.ipa).sort().join("|");
 }
 
@@ -12,8 +12,16 @@ function classify(token: Token, entries: WiktionaryEntry[]): LookupResult {
     return { status: "unknown", token, entries };
   }
 
-  const keys = new Set(entries.map(pronunciationKey));
-  const status = keys.size <= 1 ? "resolved" : "ambiguous";
+  // Only entries with actual pronunciations count for ambiguity
+  const withPron = entries.filter((e) => e.pronunciations.length > 0);
+  if (withPron.length <= 1) {
+    return { status: "resolved", token, entries };
+  }
+
+  // If all entries share at least one common IPA, it's not a true heteronym
+  const ipaSets = withPron.map((e) => new Set(e.pronunciations.map((p) => p.ipa)));
+  const shared = [...ipaSets[0]].some((ipa) => ipaSets.every((s) => s.has(ipa)));
+  const status = shared ? "resolved" : "ambiguous";
   return { status, token, entries };
 }
 

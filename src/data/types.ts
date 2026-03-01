@@ -38,4 +38,5 @@ export interface LookupResult {
   status: "resolved" | "ambiguous" | "unknown";
   token: Token;
   entries: WiktionaryEntry[];
+  disambiguatedBy?: string;
 }

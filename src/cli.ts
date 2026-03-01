@@ -114,6 +114,21 @@ async function sayResults(results: LookupResult[], accent?: string): Promise<voi
   }
 }
 
+function simpleOutput(results: LookupResult[]): string {
+  return results.map((r) => {
+    const lead = r.token.punctuation.leading;
+    const trail = r.token.punctuation.trailing;
+    const ipa = r.entries[0]?.pronunciations[0]?.ipa;
+
+    if (r.status === "unknown") return `${lead}${r.token.text}(?)${trail}`;
+    if (r.status === "ambiguous") {
+      const ipas = [...new Set(r.entries.map((e) => e.pronunciations[0]?.ipa).filter(Boolean))];
+      return `${lead}${r.token.text}(${ipas.join("|")})${trail}`;
+    }
+    return `${lead}${r.token.text} ${ipa ?? ""}${trail}`;
+  }).join(" ");
+}
+
 interface CliOpts {
   input?: string;
   file?: string;
@@ -122,7 +137,12 @@ interface CliOpts {
   notation?: string;
   label?: string[];
   labelNot?: string[];
+  preferQualifier?: string[];
+  preferQualifierNot?: string[];
+  weak?: boolean;
+  strong?: boolean;
   say?: boolean;
+  simple?: boolean;
 }
 
 program
@@ -136,7 +156,12 @@ program
   .option("--notation <type>", "filter by notation type (phonemic or phonetic)")
   .option("--label <label...>", "include definitions with any of these labels")
   .option("--label-not <label...>", "exclude definitions with any of these labels")
+  .option("--prefer-qualifier <qualifier...>", "prefer pronunciations with these qualifiers (tiebreaker)")
+  .option("--prefer-qualifier-not <qualifier...>", "prefer pronunciations without these qualifiers (tiebreaker)")
+  .option("--weak", "prefer weak/unstressed pronunciation forms")
+  .option("--strong", "prefer strong/stressed pronunciation forms")
   .option("--say", "play audio pronunciation for each word")
+  .option("--simple", "output sentence with inline IPA pronunciations")
   .action(async (step: string, opts: CliOpts) => {
     const input = opts.input ?? (opts.file ? readFileSync(opts.file, "utf-8") : null);
 
@@ -153,10 +178,32 @@ program
     }
 
     const notation = opts.notation as "phonemic" | "phonetic" | undefined;
-    const result = await fn(input, { verbose: opts.verbose, accent: opts.accent, notation, label: opts.label, labelNot: opts.labelNot });
-    console.log(JSON.stringify(result, null, 2));
 
-    if (opts.say && step === "pronounce" && Array.isArray(result)) {
+    // --weak expands to qualifier preferences for weak/unstressed forms
+    let preferQualifier = opts.preferQualifier;
+    let preferQualifierNot = opts.preferQualifierNot;
+    if (opts.weak) {
+      preferQualifier = [...(preferQualifier ?? []), "weak form", "unstressed"];
+      preferQualifierNot = [...(preferQualifierNot ?? []), "stressed"];
+    }
+    if (opts.strong) {
+      preferQualifier = [...(preferQualifier ?? []), "strong form", "stressed"];
+      preferQualifierNot = [...(preferQualifierNot ?? []), "unstressed"];
+    }
+
+    const result = await fn(input, {
+      verbose: opts.verbose, accent: opts.accent, notation,
+      label: opts.label, labelNot: opts.labelNot,
+      preferQualifier, preferQualifierNot,
+    });
+
+    if (opts.simple && (step === "pronounce" || step === "disambiguate") && Array.isArray(result)) {
+      console.log(simpleOutput(result as LookupResult[]));
+    } else {
+      console.log(JSON.stringify(result, null, 2));
+    }
+
+    if (opts.say && (step === "pronounce" || step === "disambiguate") && Array.isArray(result)) {
       await sayResults(result as LookupResult[], opts.accent);
     }
   });
