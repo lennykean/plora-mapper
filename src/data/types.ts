@@ -8,9 +8,17 @@ export interface Token {
   };
 }
 
+export interface Audio {
+  url: string;
+  accent?: string;
+  ipa?: string;
+}
+
 export interface Pronunciation {
   ipa: string;
+  notation: "phonemic" | "phonetic";
   accent?: string;
+  qualifier?: string;
 }
 
 export interface Definition {
@@ -22,5 +30,12 @@ export interface WiktionaryEntry {
   word: string;
   pos: string;
   pronunciations: Pronunciation[];
+  audio: Audio[];
   definitions: Record<string, Definition[]>;
+}
+
+export interface LookupResult {
+  status: "resolved" | "ambiguous" | "unknown";
+  token: Token;
+  entries: WiktionaryEntry[];
 }

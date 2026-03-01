@@ -5,7 +5,8 @@ import type { WiktionaryEntry } from "./types.ts";
 const testEntry: WiktionaryEntry = {
   word: "test",
   pos: "noun",
-  pronunciations: [{ ipa: "tɛst" }],
+  pronunciations: [{ ipa: "/tɛst/", notation: "phonemic" as const }],
+  audio: [],
   definitions: {
     "": [{ definition: "A test entry.", labels: ["testing"] }],
   },

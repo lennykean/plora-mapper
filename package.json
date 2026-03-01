@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "cli": "tsx src/cli.ts",
     "cli:quiet": "tsx src/cli.ts 2>/dev/null",
+    "fetch:cmudict": "node scripts/download-cmudict.cjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
