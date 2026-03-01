@@ -1,0 +1,29 @@
+This file contains the license and attribution notices for third-party
+data used by this application.
+
+================================================================================
+Wiktionary
+================================================================================
+
+Lexical data (pronunciations, definitions, parts of speech) is retrieved from
+the English Wiktionary via the MediaWiki API.
+
+  https://en.wiktionary.org/
+
+Wiktionary text content is dual-licensed under:
+
+  1. Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+     https://creativecommons.org/licenses/by-sa/4.0/
+
+  2. GNU Free Documentation License (GFDL) 1.1 or later
+     https://www.gnu.org/licenses/fdl-1.3.html
+
+This application uses content under the terms of CC BY-SA 4.0.
+
+Attribution: Content is authored by Wiktionary contributors. Per the license,
+the source of each entry is the English Wiktionary (https://en.wiktionary.org/).
+Individual entry revision histories serve as the record of authorship.
+
+Modifications: Raw wikitext markup is parsed and transformed into structured
+data (JSON). Definitions, pronunciations, and labels are extracted; formatting,
+examples, quotations, translations, and other non-essential content is removed.

@@ -1,5 +1,6 @@
 import { program } from "commander";
 import { readFileSync } from "fs";
+import { steps } from "./steps/index.ts";
 
 program
   .name("plora-mapper")
@@ -7,7 +8,8 @@ program
   .argument("<step>", "pipeline step to run")
   .option("--input <text>", "input text")
   .option("--file <path>", "input file path")
-  .action((step: string, opts: { input?: string; file?: string }) => {
+  .option("-v, --verbose", "verbose output")
+  .action(async (step: string, opts: { input?: string; file?: string; verbose?: boolean }) => {
     const input = opts.input ?? (opts.file ? readFileSync(opts.file, "utf-8") : null);
 
     if (!input) {
@@ -15,13 +17,15 @@ program
       process.exit(1);
     }
 
-    // Placeholder: dispatch to step handlers as they're built
-    const result = runStep(step, input);
+    const fn = steps[step];
+    if (!fn) {
+      console.error(`Unknown step: ${step}`);
+      console.error(`Available steps: ${Object.keys(steps).join(", ")}`);
+      process.exit(1);
+    }
+
+    const result = await fn(input, { verbose: opts.verbose });
     console.log(JSON.stringify(result, null, 2));
   });
-
-function runStep(step: string, input: string): unknown {
-  throw new Error(`Unknown step: ${step}`);
-}
 
 program.parse();
