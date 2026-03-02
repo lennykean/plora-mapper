@@ -532,6 +532,40 @@ describe("parseWikitext", () => {
     expect(prons[0]).toEqual({ ipa: "/həʊld/", notation: "phonemic", accent: "UK" });
     expect(prons[1]).toEqual({ ipa: "[həʊɫd]", notation: "phonetic", accent: "UK" });
   });
+
+  it("parses {{a|RP}} without en| prefix as parent accent", () => {
+    const wikitext = [
+      "==English==",
+      "===Pronunciation===",
+      "* {{a|RP}}",
+      "** {{IPA|en|/ðə/}}",
+      "* {{a|GA}}",
+      "** {{IPA|en|/ðə/|a=weak form}}",
+      "===Article===",
+      "# The definite article.",
+    ].join("\n");
+
+    const result = parseWikitext("the", wikitext);
+    expect(result).toHaveLength(1);
+    const prons = result[0].pronunciations;
+    expect(prons).toHaveLength(2);
+    expect(prons[0]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "RP" });
+    expect(prons[1]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "GA", qualifier: "weak form" });
+  });
+
+  it("handles pronunciation header with spaces around text", () => {
+    const wikitext = [
+      "==English==",
+      "=== Pronunciation ===",
+      "* {{IPA|en|/kæt/}}",
+      "===Noun===",
+      "# A feline.",
+    ].join("\n");
+
+    const result = parseWikitext("cat", wikitext);
+    expect(result).toHaveLength(1);
+    expect(result[0].pronunciations).toEqual([{ ipa: "/kæt/", notation: "phonemic" }]);
+  });
 });
 
 describe("filterPronunciations", () => {
@@ -606,6 +640,23 @@ describe("filterPronunciations", () => {
     }];
     const result = filterPronunciations(gaEntries, "US");
     expect(result).toHaveLength(1);
+  });
+
+  it("excludes untagged pronunciations when accent filter is active", () => {
+    const mixed: WiktionaryEntry[] = [{
+      word: "test",
+      pos: "noun",
+      pronunciations: [
+        { ipa: "/tɛst/", notation: "phonemic" as const },
+        { ipa: "/tɛst/", notation: "phonemic" as const, accent: "GA" },
+      ],
+      audio: [],
+      definitions: { "": [{ definition: "A test.", labels: [] }] },
+    }];
+    const result = filterPronunciations(mixed, "GA");
+    expect(result).toHaveLength(1);
+    expect(result[0].pronunciations).toHaveLength(1);
+    expect(result[0].pronunciations[0].accent).toBe("GA");
   });
 });
 

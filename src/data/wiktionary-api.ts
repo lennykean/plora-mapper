@@ -286,7 +286,7 @@ export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[]
   let currentParentAccent: string | undefined;
 
   for (const line of englishLines) {
-    if (/^={3,4}Pronunciation={3,4}$/.test(line)) {
+    if (/^={3,4}\s*Pronunciation\s*={3,4}$/.test(line)) {
       currentParentAccent = undefined;
       continue;
     }
@@ -296,7 +296,7 @@ export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[]
     const bulletDepth = bulletMatch ? bulletMatch[1].length : 0;
 
     if (bulletDepth === 1) {
-      const accentTemplate = line.match(/\{\{a\|en\|([^}]+)\}\}/);
+      const accentTemplate = line.match(/\{\{a\|(?:en\|)?([^}]+)\}\}/);
       if (accentTemplate && !line.includes("{{IPA|en|")) {
         currentParentAccent = accentTemplate[1];
         continue;
@@ -412,7 +412,7 @@ export function filterPronunciations(
       ...entry,
       pronunciations: entry.pronunciations.filter((p) => {
         if (accentSet) {
-          if (p.accent && !p.accent.split(",").some((a) => accentSet.has(a.trim()))) return false;
+          if (!p.accent || !p.accent.split(",").some((a) => accentSet.has(a.trim()))) return false;
         }
         if (notation && p.notation !== notation) return false;
         return true;
@@ -486,11 +486,31 @@ export async function lookup(word: string, options?: LookupOptions): Promise<Wik
     cache.set(normalized, entries);
   }
 
-  // CMU fallback — always checked when Wiktionary has nothing, cached or not
-  if (entries.length === 0) {
-    entries = cmuLookup(normalized);
-    if (verbose && entries.length > 0) console.error(`[cmu fallback] ${normalized}`);
+  // CMU fallback — when Wiktionary has no pronunciations (e.g. inflection-only pages)
+  const hasPronunciations = entries.some((e) => e.pronunciations.length > 0);
+  if (!hasPronunciations) {
+    const cmuEntries = cmuLookup(normalized);
+    if (cmuEntries.length > 0) {
+      if (entries.length > 0) {
+        entries = entries.map(e => ({ ...e, pronunciations: cmuEntries[0].pronunciations }));
+      } else {
+        entries = cmuEntries;
+      }
+      if (verbose) console.error(`[cmu fallback] ${normalized}`);
+    }
   }
 
-  return applyFilters(entries, options);
+  let filtered = applyFilters(entries, options);
+
+  // Post-filter CMU fallback — accent filter may have stripped all pronunciations
+  if (filtered.length === 0 && entries.length > 0) {
+    const cmuEntries = cmuLookup(normalized);
+    if (cmuEntries.length > 0) {
+      entries = entries.map(e => ({ ...e, pronunciations: cmuEntries[0].pronunciations }));
+      filtered = applyFilters(entries, options);
+      if (verbose) console.error(`[cmu post-filter fallback] ${normalized}`);
+    }
+  }
+
+  return filtered;
 }

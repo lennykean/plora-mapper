@@ -1,7 +1,7 @@
 import type { Token, WiktionaryEntry, LookupResult } from "../data/types.ts";
 import { lookup } from "../data/wiktionary-api.ts";
 import tokenize from "./tokenize.ts";
-import type { StepOptions } from "./index.ts";
+import type { StepOptions } from "../data/types.ts";
 
 export function pronunciationKey(entry: WiktionaryEntry): string {
   return entry.pronunciations.map((p) => p.ipa).sort().join("|");

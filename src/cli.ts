@@ -1,7 +1,7 @@
 import { program } from "commander";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { execFile } from "child_process";
-import { resolve, dirname } from "path";
+import { resolve, dirname, sep } from "path";
 import { fileURLToPath } from "url";
 import { steps } from "./steps/index.ts";
 import type { LookupResult } from "./data/types.ts";
@@ -27,16 +27,19 @@ function beep(): Promise<void> {
   });
 }
 
-function audioCachePath(url: string): string {
-  // Use the filename from the URL as the cache key
+function audioCachePath(url: string): string | null {
   const filename = decodeURIComponent(url.split("/").pop()!);
-  return resolve(AUDIO_CACHE, filename);
+  if (!filename) return null;
+  const resolved = resolve(AUDIO_CACHE, filename);
+  if (!resolved.startsWith(AUDIO_CACHE + sep) && resolved !== AUDIO_CACHE) return null;
+  return resolved;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchAudio(url: string): Promise<string | null> {
   const cached = audioCachePath(url);
+  if (!cached) return null;
   if (existsSync(cached)) {
     console.error(`[say] cache hit: ${cached}`);
     return cached;
@@ -125,7 +128,8 @@ function simpleOutput(results: LookupResult[]): string {
       const ipas = [...new Set(r.entries.map((e) => e.pronunciations[0]?.ipa).filter(Boolean))];
       return `${lead}${r.token.text}(${ipas.join("|")})${trail}`;
     }
-    return `${lead}${r.token.text} ${ipa ?? ""}${trail}`;
+    const ipaStr = ipa ? ` ${ipa}` : "";
+    return `${lead}${r.token.text}${ipaStr}${trail}`;
   }).join(" ");
 }
 

@@ -193,6 +193,41 @@ describe("disambiguate", () => {
     expect(out[0].disambiguatedBy).toBe("word + object pronoun -> verb");
   });
 
+  // Rule 10: noun-only word + word -> verb
+  it("resolves 'fascists are' as verb (noun-only predecessor)", () => {
+    const areVerb = makeEntry("are", "verb", "/ɑː/");
+    const areNoun = makeEntry("are", "noun", "/ɛə/");
+    const results = [
+      makeResult("fascists", 0, [makeEntry("fascists", "noun", "/ˈfæʃ.ɪsts/")]),
+      makeResult("are", 1, [areVerb, areNoun]),
+    ];
+    const out = disambiguate(results);
+    expect(out[1].status).toBe("resolved");
+    expect(out[1].entries[0].pos).toBe("verb");
+    expect(out[1].disambiguatedBy).toBe("noun-only word + word -> verb");
+  });
+
+  it("resolves 'cats produce' as verb (noun-only predecessor)", () => {
+    const results = [
+      makeResult("cats", 0, [makeEntry("cats", "noun", "/kæts/")]),
+      makeResult("produce", 1, [produceNoun, produceVerb]),
+    ];
+    const out = disambiguate(results);
+    expect(out[1].status).toBe("resolved");
+    expect(out[1].entries[0].pos).toBe("verb");
+    expect(out[1].disambiguatedBy).toBe("noun-only word + word -> verb");
+  });
+
+  it("does NOT fire noun-only rule when predecessor also has verb POS", () => {
+    const results = [
+      makeResult("record", 0, [recordNoun, recordVerb]),
+      makeResult("produce", 1, [produceNoun, produceVerb]),
+    ];
+    const out = disambiguate(results);
+    // "record" has both noun and verb POS, so the rule should not fire for "produce"
+    expect(out[1].disambiguatedBy).not.toBe("noun-only word + word -> verb");
+  });
+
   // Passthrough: resolved tokens unchanged
   it("does not modify resolved tokens", () => {
     const results = [makeResult("cat", 0, [makeEntry("cat", "noun", "/kæt/")])];

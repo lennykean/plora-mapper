@@ -1,7 +1,7 @@
 import type { LookupResult, WiktionaryEntry } from "../data/types.ts";
 import { pronounce, pronunciationKey } from "./pronounce.ts";
 import tokenize from "./tokenize.ts";
-import type { StepOptions } from "./index.ts";
+import type { StepOptions } from "../data/types.ts";
 
 // ── Word classification sets ──────────────────────────────────────
 
@@ -60,6 +60,13 @@ function hasPOS(results: LookupResult[], index: number, offset: number, pos: str
   const i = index + offset;
   if (i < 0 || i >= results.length) return false;
   return results[i].entries.some((e) => e.pos === pos);
+}
+
+function hasOnlyPOS(results: LookupResult[], index: number, offset: number, pos: string): boolean {
+  const i = index + offset;
+  if (i < 0 || i >= results.length) return false;
+  const entries = results[i].entries;
+  return entries.length > 0 && entries.every((e) => e.pos === pos);
 }
 
 // ── Rules ─────────────────────────────────────────────────────────
@@ -139,6 +146,13 @@ const RULES: GrammarRule[] = [
       if (!candidatePOS.has("verb")) return null;
       const next = tokenNorm(results, index, 1);
       return next && OBJECT_PRONOUNS.has(next) ? "verb" : null;
+    },
+  },
+  {
+    name: "noun-only word + word -> verb",
+    apply({ index, results, candidatePOS }) {
+      if (!candidatePOS.has("verb")) return null;
+      return hasOnlyPOS(results, index, -1, "noun") ? "verb" : null;
     },
   },
 ];

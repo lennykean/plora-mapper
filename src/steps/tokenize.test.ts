@@ -50,4 +50,20 @@ describe("tokenize", () => {
     const result = tokenize("a b c");
     expect(result.map((t) => t.position)).toEqual([0, 1, 2]);
   });
+
+  it("preserves contractions with curly apostrophe as single tokens", () => {
+    const result = tokenize("don\u2019t I\u2019m they\u2019re");
+    expect(result).toHaveLength(3);
+    expect(result[0].text).toBe("don\u2019t");
+    expect(result[0].normalized).toBe("don't");
+    expect(result[1].normalized).toBe("i'm");
+    expect(result[2].normalized).toBe("they're");
+  });
+
+  it("normalizes curly apostrophe to straight in normalized field", () => {
+    const result = tokenize("it\u2019s");
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe("it\u2019s");
+    expect(result[0].normalized).toBe("it's");
+  });
 });

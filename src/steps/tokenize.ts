@@ -1,7 +1,7 @@
 import type { Token } from "../data/types.ts";
 
-const LEADING_PUNCT = /^[^\w']+/;
-const TRAILING_PUNCT = /[^\w']+$/;
+const LEADING_PUNCT = /^[^\w'\u2019]+/;
+const TRAILING_PUNCT = /[^\w'\u2019]+$/;
 
 export default function tokenize(input: string): Token[] {
   const chunks = input.split(/\s+/).filter(Boolean);
@@ -19,7 +19,7 @@ export default function tokenize(input: string): Token[] {
     tokens.push({
       text,
       position: tokens.length,
-      normalized: text.toLowerCase(),
+      normalized: text.replace(/\u2019/g, "'").toLowerCase(),
       punctuation: { leading, trailing },
     });
   }

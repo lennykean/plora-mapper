@@ -40,3 +40,13 @@ export interface LookupResult {
   entries: WiktionaryEntry[];
   disambiguatedBy?: string;
 }
+
+export interface StepOptions {
+  verbose?: boolean;
+  accent?: string;
+  notation?: "phonemic" | "phonetic";
+  label?: string[];
+  labelNot?: string[];
+  preferQualifier?: string[];
+  preferQualifierNot?: string[];
+}
