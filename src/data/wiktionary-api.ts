@@ -123,10 +123,10 @@ async function fetchWikitext(word: string): Promise<string | null> {
             return;
           }
 
-          const json: {
+          const json = (await res.json()) as {
             error?: unknown;
             parse?: { wikitext?: { "*"?: string } };
-          } = await res.json();
+          };
           if (json.error) {
             resolve(null);
             return;
