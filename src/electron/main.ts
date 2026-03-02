@@ -9,8 +9,8 @@ const isDev = !app.isPackaged;
 // Configure data paths before anything else imports them
 if (isDev) {
   configurePaths({
-    dataDir: path.resolve(app.getAppPath(), "data"),
-    cacheDir: path.resolve(app.getAppPath(), "data"),
+    dataDir: path.resolve(process.cwd(), "data"),
+    cacheDir: path.resolve(process.cwd(), "data"),
   });
 } else {
   configurePaths({

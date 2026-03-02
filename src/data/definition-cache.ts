@@ -9,7 +9,7 @@ let dbFailed = false;
 
 function openDatabase(dbPath: string): Database.Database {
   const instance = new Database(dbPath);
-  instance.pragma("journal_mode = WAL");
+  instance.pragma("journal_mode = DELETE");
   instance.exec(`
     CREATE TABLE IF NOT EXISTS definitions (
       word TEXT PRIMARY KEY,

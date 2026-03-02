@@ -1,5 +1,5 @@
 appId: com.plora.mapper
-productName: Plora Mapper
+productName: PLORA
 directories:
   output: release
   buildResources: build
@@ -10,6 +10,8 @@ extraResources:
   - from: data/cmudict.dict
     to: data/cmudict.dict
 asar: true
+asarUnpack:
+  - "node_modules/better-sqlite3/**"
 win:
   target: nsis
 mac:
