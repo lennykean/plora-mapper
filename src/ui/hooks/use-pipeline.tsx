@@ -1,6 +1,13 @@
-import { useReducer, useCallback, useRef, createContext, useContext } from "react";
+import {
+  useReducer,
+  useCallback,
+  useRef,
+  useEffect,
+  createContext,
+  useContext,
+} from "react";
 import type { LookupResult, StepOptions } from "../../data/types.ts";
-import { pipelineService } from "../../api/pipeline-service.ts";
+import { getPipelineService } from "../../api/pipeline-service.ts";
 
 // ── State ────────────────────────────────────────────────────────
 
@@ -42,7 +49,11 @@ type PipelineAction =
   | { type: "SET_DRAFT"; text: string }
   | { type: "SUBMIT"; input: string }
   | { type: "RERUN"; input: string; options: StepOptions }
-  | { type: "PIPELINE_SUCCESS"; pronounceResults: LookupResult[]; results: LookupResult[] }
+  | {
+      type: "PIPELINE_SUCCESS";
+      pronounceResults: LookupResult[];
+      results: LookupResult[];
+    }
   | { type: "PIPELINE_ERROR"; error: string }
   | { type: "UPDATE_OPTIONS"; options: StepOptions }
   | { type: "SET_OPTIONS_ONLY"; options: StepOptions }
@@ -87,18 +98,38 @@ function extractQualifiers(results: LookupResult[]): string[] {
 
 // ── Reducer ──────────────────────────────────────────────────────
 
-function pipelineReducer(state: PipelineState, action: PipelineAction): PipelineState {
+function pipelineReducer(
+  state: PipelineState,
+  action: PipelineAction,
+): PipelineState {
   switch (action.type) {
     case "SET_DRAFT":
       return { ...state, draftText: action.text };
     case "SUBMIT":
-      return { ...state, input: action.input, loading: true, error: null, overrides: {}, manualIpa: {} };
+      return {
+        ...state,
+        input: action.input,
+        loading: true,
+        error: null,
+        overrides: {},
+        manualIpa: {},
+      };
     case "RERUN":
-      return { ...state, input: action.input, options: action.options, loading: true, error: null, overrides: {}, manualIpa: {} };
+      return {
+        ...state,
+        input: action.input,
+        options: action.options,
+        loading: true,
+        error: null,
+        overrides: {},
+        manualIpa: {},
+      };
     case "PIPELINE_SUCCESS": {
       const accents = extractAccents(action.pronounceResults);
-      const newAccent = state.options.accent && accents.includes(state.options.accent)
-        ? state.options.accent : undefined;
+      const newAccent =
+        state.options.accent && accents.includes(state.options.accent)
+          ? state.options.accent
+          : undefined;
       const options = { ...state.options, accent: newAccent };
       return {
         ...state,
@@ -117,15 +148,31 @@ function pipelineReducer(state: PipelineState, action: PipelineAction): Pipeline
     case "SET_OPTIONS_ONLY":
       return { ...state, options: action.options };
     case "REDISAMBIGUATE_SUCCESS":
-      return { ...state, loading: false, results: action.results, overrides: {} };
+      return {
+        ...state,
+        loading: false,
+        results: action.results,
+        overrides: {},
+        manualIpa: {},
+      };
     case "OVERRIDE":
-      return { ...state, overrides: { ...state.overrides, [action.position]: action.entryIndex } };
+      return {
+        ...state,
+        overrides: { ...state.overrides, [action.position]: action.entryIndex },
+      };
     case "CLEAR_OVERRIDE": {
-      const { [action.position]: _, ...rest } = state.overrides;
+      const rest = Object.fromEntries(
+        Object.entries(state.overrides).filter(
+          ([k]) => k !== String(action.position),
+        ),
+      );
       return { ...state, overrides: rest };
     }
     case "MANUAL_IPA":
-      return { ...state, manualIpa: { ...state.manualIpa, [action.position]: action.ipa } };
+      return {
+        ...state,
+        manualIpa: { ...state.manualIpa, [action.position]: action.ipa },
+      };
     case "SET_DISPLAY_MODE":
       return { ...state, displayMode: action.mode };
     default:
@@ -139,9 +186,13 @@ function usePipelineInternal() {
   const [state, dispatch] = useReducer(pipelineReducer, initialState);
   const nonceRef = useRef(0);
   const optionsRef = useRef(state.options);
-  optionsRef.current = state.options;
+  useEffect(() => {
+    optionsRef.current = state.options;
+  }, [state.options]);
   const pronounceResultsRef = useRef(state.pronounceResults);
-  pronounceResultsRef.current = state.pronounceResults;
+  useEffect(() => {
+    pronounceResultsRef.current = state.pronounceResults;
+  }, [state.pronounceResults]);
 
   const setDraftText = useCallback((text: string) => {
     dispatch({ type: "SET_DRAFT", text });
@@ -151,7 +202,10 @@ function usePipelineInternal() {
     const nonce = ++nonceRef.current;
     dispatch({ type: "SUBMIT", input: text });
     try {
-      const response = await pipelineService.run({ text, options: optionsRef.current });
+      const response = await getPipelineService().run({
+        text,
+        options: optionsRef.current,
+      });
       if (nonce !== nonceRef.current) return;
       dispatch({
         type: "PIPELINE_SUCCESS",
@@ -165,7 +219,9 @@ function usePipelineInternal() {
   }, []);
 
   const inputRef = useRef(state.input);
-  inputRef.current = state.input;
+  useEffect(() => {
+    inputRef.current = state.input;
+  }, [state.input]);
 
   const updateOptions = useCallback(async (opts: StepOptions) => {
     const prev = optionsRef.current;
@@ -173,7 +229,7 @@ function usePipelineInternal() {
       dispatch({ type: "SET_OPTIONS_ONLY", options: opts });
       return;
     }
-    const accentChanged = prev.accent !== opts.accent || prev.notation !== opts.notation;
+    const accentChanged = prev.accent !== opts.accent;
     if (accentChanged) {
       if (!inputRef.current) {
         dispatch({ type: "SET_OPTIONS_ONLY", options: opts });
@@ -182,9 +238,16 @@ function usePipelineInternal() {
       const nonce = ++nonceRef.current;
       dispatch({ type: "RERUN", input: inputRef.current, options: opts });
       try {
-        const response = await pipelineService.run({ text: inputRef.current, options: opts });
+        const response = await getPipelineService().run({
+          text: inputRef.current,
+          options: opts,
+        });
         if (nonce !== nonceRef.current) return;
-        dispatch({ type: "PIPELINE_SUCCESS", pronounceResults: response.pronounceResults, results: response.results });
+        dispatch({
+          type: "PIPELINE_SUCCESS",
+          pronounceResults: response.pronounceResults,
+          results: response.results,
+        });
       } catch (e) {
         if (nonce !== nonceRef.current) return;
         dispatch({ type: "PIPELINE_ERROR", error: (e as Error).message });
@@ -194,7 +257,7 @@ function usePipelineInternal() {
     const nonce = ++nonceRef.current;
     dispatch({ type: "UPDATE_OPTIONS", options: opts });
     try {
-      const response = await pipelineService.redisambiguate({
+      const response = await getPipelineService().redisambiguate({
         results: pronounceResultsRef.current,
         options: opts,
       });
@@ -222,23 +285,25 @@ function usePipelineInternal() {
     dispatch({ type: "SET_DISPLAY_MODE", mode });
   }, []);
 
-  return { state, setDraftText, submit, updateOptions, override, clearOverride, setManualIpa, setDisplayMode };
+  return {
+    state,
+    setDraftText,
+    submit,
+    updateOptions,
+    override,
+    clearOverride,
+    setManualIpa,
+    setDisplayMode,
+  };
 }
 
 // ── Context ──────────────────────────────────────────────────────
 
-type PipelineContextType = ReturnType<typeof usePipelineInternal>;
+export type PipelineContextType = ReturnType<typeof usePipelineInternal>;
 
-const PipelineContext = createContext<PipelineContextType | null>(null);
+export const PipelineContext = createContext<PipelineContextType | null>(null);
 
-export function PipelineProvider({ children }: { children: React.ReactNode }) {
-  const pipeline = usePipelineInternal();
-  return (
-    <PipelineContext.Provider value={pipeline}>
-      {children}
-    </PipelineContext.Provider>
-  );
-}
+export { usePipelineInternal };
 
 export function usePipeline() {
   const ctx = useContext(PipelineContext);

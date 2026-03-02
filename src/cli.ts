@@ -11,19 +11,33 @@ const AUDIO_CACHE = resolve(__dirname, "../data/audio");
 
 function playFile(path: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    execFile("ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", path], (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
+    execFile(
+      "ffplay",
+      ["-nodisp", "-autoexit", "-loglevel", "quiet", path],
+      (err) => {
+        if (err) reject(err);
+        else resolve();
+      },
+    );
   });
 }
 
 function beep(): Promise<void> {
   return new Promise((resolve) => {
-    execFile("ffplay", [
-      "-f", "lavfi", "-i", "sine=frequency=600:duration=0.15",
-      "-nodisp", "-autoexit", "-loglevel", "quiet",
-    ], () => resolve());
+    execFile(
+      "ffplay",
+      [
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=600:duration=0.15",
+        "-nodisp",
+        "-autoexit",
+        "-loglevel",
+        "quiet",
+      ],
+      () => resolve(),
+    );
   });
 }
 
@@ -31,7 +45,8 @@ function audioCachePath(url: string): string | null {
   const filename = decodeURIComponent(url.split("/").pop()!);
   if (!filename) return null;
   const resolved = resolve(AUDIO_CACHE, filename);
-  if (!resolved.startsWith(AUDIO_CACHE + sep) && resolved !== AUDIO_CACHE) return null;
+  if (!resolved.startsWith(AUDIO_CACHE + sep) && resolved !== AUDIO_CACHE)
+    return null;
   return resolved;
 }
 
@@ -54,7 +69,9 @@ async function fetchAudio(url: string): Promise<string | null> {
     }
 
     const res = await fetch(url, {
-      headers: { "User-Agent": "plora-mapper/0.0.0 (https://github.com/plora-mapper)" },
+      headers: {
+        "User-Agent": "plora-mapper/0.0.0 (https://github.com/plora-mapper)",
+      },
     });
 
     if (res.status === 429) continue;
@@ -73,10 +90,16 @@ async function fetchAudio(url: string): Promise<string | null> {
   return null;
 }
 
-async function sayResults(results: LookupResult[], accent?: string): Promise<void> {
+async function sayResults(
+  results: LookupResult[],
+  accent?: string,
+): Promise<void> {
   const ACCENT_ALIASES: Record<string, string[]> = {
-    GA: ["GenAm", "US"], GenAm: ["GA", "US"], US: ["GA", "GenAm"],
-    RP: ["UK"], UK: ["RP"],
+    GA: ["GenAm", "US"],
+    GenAm: ["GA", "US"],
+    US: ["GA", "GenAm"],
+    RP: ["UK"],
+    UK: ["RP"],
   };
   const gaSet = new Set(["GA", "GenAm", "US"]);
 
@@ -85,13 +108,17 @@ async function sayResults(results: LookupResult[], accent?: string): Promise<voi
     let audio;
     if (accent) {
       // Exact match first, then aliases, then GA fallback
-      audio = allAudio.find((a) => a.accent === accent)
-        ?? allAudio.find((a) => a.accent && ACCENT_ALIASES[accent]?.includes(a.accent))
-        ?? allAudio.find((a) => a.accent && gaSet.has(a.accent));
+      audio =
+        allAudio.find((a) => a.accent === accent) ??
+        allAudio.find(
+          (a) => a.accent && ACCENT_ALIASES[accent]?.includes(a.accent),
+        ) ??
+        allAudio.find((a) => a.accent && gaSet.has(a.accent));
     } else {
-      audio = allAudio.find((a) => a.accent === "GA")
-        ?? allAudio.find((a) => a.accent && gaSet.has(a.accent))
-        ?? allAudio[0];
+      audio =
+        allAudio.find((a) => a.accent === "GA") ??
+        allAudio.find((a) => a.accent && gaSet.has(a.accent)) ??
+        allAudio[0];
     }
 
     if (!audio) {
@@ -111,26 +138,34 @@ async function sayResults(results: LookupResult[], accent?: string): Promise<voi
       await playFile(file);
     } catch (err) {
       console.error(`[say] playback failed: ${(err as Error).message}`);
-      console.error("[say] install ffmpeg (scoop install ffmpeg) for .ogg support");
+      console.error(
+        "[say] install ffmpeg (scoop install ffmpeg) for .ogg support",
+      );
       break;
     }
   }
 }
 
 function simpleOutput(results: LookupResult[]): string {
-  return results.map((r) => {
-    const lead = r.token.punctuation.leading;
-    const trail = r.token.punctuation.trailing;
-    const ipa = r.entries[0]?.pronunciations[0]?.ipa;
+  return results
+    .map((r) => {
+      const lead = r.token.punctuation.leading;
+      const trail = r.token.punctuation.trailing;
+      const ipa = r.entries[0]?.pronunciations[0]?.ipa;
 
-    if (r.status === "unknown") return `${lead}${r.token.text}(?)${trail}`;
-    if (r.status === "ambiguous") {
-      const ipas = [...new Set(r.entries.map((e) => e.pronunciations[0]?.ipa).filter(Boolean))];
-      return `${lead}${r.token.text}(${ipas.join("|")})${trail}`;
-    }
-    const ipaStr = ipa ? ` ${ipa}` : "";
-    return `${lead}${r.token.text}${ipaStr}${trail}`;
-  }).join(" ");
+      if (r.status === "unknown") return `${lead}${r.token.text}(?)${trail}`;
+      if (r.status === "ambiguous") {
+        const ipas = [
+          ...new Set(
+            r.entries.map((e) => e.pronunciations[0]?.ipa).filter(Boolean),
+          ),
+        ];
+        return `${lead}${r.token.text}(${ipas.join("|")})${trail}`;
+      }
+      const ipaStr = ipa ? ` ${ipa}` : "";
+      return `${lead}${r.token.text}${ipaStr}${trail}`;
+    })
+    .join(" ");
 }
 
 interface CliOpts {
@@ -156,18 +191,31 @@ program
   .option("--input <text>", "input text")
   .option("--file <path>", "input file path")
   .option("-v, --verbose", "verbose output")
-  .option("--accent <accent>", "filter pronunciations by accent (e.g. GA, RP, US)")
+  .option(
+    "--accent <accent>",
+    "filter pronunciations by accent (e.g. GA, RP, US)",
+  )
   .option("--notation <type>", "filter by notation type (phonemic or phonetic)")
   .option("--label <label...>", "include definitions with any of these labels")
-  .option("--label-not <label...>", "exclude definitions with any of these labels")
-  .option("--prefer-qualifier <qualifier...>", "prefer pronunciations with these qualifiers (tiebreaker)")
-  .option("--prefer-qualifier-not <qualifier...>", "prefer pronunciations without these qualifiers (tiebreaker)")
+  .option(
+    "--label-not <label...>",
+    "exclude definitions with any of these labels",
+  )
+  .option(
+    "--prefer-qualifier <qualifier...>",
+    "prefer pronunciations with these qualifiers (tiebreaker)",
+  )
+  .option(
+    "--prefer-qualifier-not <qualifier...>",
+    "prefer pronunciations without these qualifiers (tiebreaker)",
+  )
   .option("--weak", "prefer weak/unstressed pronunciation forms")
   .option("--strong", "prefer strong/stressed pronunciation forms")
   .option("--say", "play audio pronunciation for each word")
   .option("--simple", "output sentence with inline IPA pronunciations")
   .action(async (step: string, opts: CliOpts) => {
-    const input = opts.input ?? (opts.file ? readFileSync(opts.file, "utf-8") : null);
+    const input =
+      opts.input ?? (opts.file ? readFileSync(opts.file, "utf-8") : null);
 
     if (!input) {
       console.error("Error: provide --input or --file");
@@ -196,18 +244,30 @@ program
     }
 
     const result = await fn(input, {
-      verbose: opts.verbose, accent: opts.accent, notation,
-      label: opts.label, labelNot: opts.labelNot,
-      preferQualifier, preferQualifierNot,
+      verbose: opts.verbose,
+      accent: opts.accent,
+      notation,
+      label: opts.label,
+      labelNot: opts.labelNot,
+      preferQualifier,
+      preferQualifierNot,
     });
 
-    if (opts.simple && (step === "pronounce" || step === "disambiguate") && Array.isArray(result)) {
+    if (
+      opts.simple &&
+      (step === "pronounce" || step === "disambiguate") &&
+      Array.isArray(result)
+    ) {
       console.log(simpleOutput(result as LookupResult[]));
     } else {
       console.log(JSON.stringify(result, null, 2));
     }
 
-    if (opts.say && (step === "pronounce" || step === "disambiguate") && Array.isArray(result)) {
+    if (
+      opts.say &&
+      (step === "pronounce" || step === "disambiguate") &&
+      Array.isArray(result)
+    ) {
       await sayResults(result as LookupResult[], opts.accent);
     }
   });

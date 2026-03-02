@@ -36,7 +36,23 @@ describe("arpabetToIPA", () => {
 
   it("handles all vowel types", () => {
     // Just verify no crashes on all vowel phonemes
-    const vowels = ["AA1", "AE1", "AH1", "AO1", "AW1", "AY1", "EH1", "ER1", "EY1", "IH1", "IY1", "OW1", "OY1", "UH1", "UW1"];
+    const vowels = [
+      "AA1",
+      "AE1",
+      "AH1",
+      "AO1",
+      "AW1",
+      "AY1",
+      "EH1",
+      "ER1",
+      "EY1",
+      "IH1",
+      "IY1",
+      "OW1",
+      "OY1",
+      "UH1",
+      "UW1",
+    ];
     for (const v of vowels) {
       const result = arpabetToIPA(v);
       expect(result).toMatch(/^\/.*\/$/);

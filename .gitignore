@@ -10,7 +10,9 @@ lerna-debug.log*
 node_modules
 /data/
 dist
+dist-electron
 dist-ssr
+release
 *.local
 
 # Editor directories and files

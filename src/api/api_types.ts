@@ -2,7 +2,7 @@ import type { LookupResult, StepOptions } from "../data/types.ts";
 
 export interface PipelineRequest {
   text: string;
-  options: StepOptions;
+  options?: StepOptions;
 }
 
 export interface PipelineResponse {
@@ -12,7 +12,7 @@ export interface PipelineResponse {
 
 export interface DisambiguateRequest {
   results: LookupResult[];
-  options: StepOptions;
+  options?: StepOptions;
 }
 
 export interface DisambiguateResponse {

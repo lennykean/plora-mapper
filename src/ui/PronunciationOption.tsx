@@ -9,11 +9,23 @@ interface PronunciationOptionProps {
   onSelect: () => void;
 }
 
-export default function PronunciationOption({ ipa, entries, audio, onSelect }: PronunciationOptionProps) {
+export default function PronunciationOption({
+  ipa,
+  entries,
+  audio,
+  onSelect,
+}: PronunciationOptionProps) {
   return (
-    <Box p="sm" style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
+    <Box
+      p="sm"
+      style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}
+    >
       <Group gap="xs" mb="xs">
-        <Text size="md" fw={500} ff="'Gentium Plus', 'Lucida Sans Unicode', serif">
+        <Text
+          size="md"
+          fw={500}
+          ff="'Gentium Plus', 'Lucida Sans Unicode', serif"
+        >
           {ipa}
         </Text>
         {audio && <AudioButton url={audio.url} />}
@@ -22,8 +34,10 @@ export default function PronunciationOption({ ipa, entries, audio, onSelect }: P
       {entries.map((entry, i) => {
         const firstDef = Object.values(entry.definitions).flat()[0];
         return (
-          <Group key={i} gap="xs" mb={4} align="flex-start">
-            <Badge size="md" variant="light" style={{ flexShrink: 0 }}>{entry.pos}</Badge>
+          <Group key={i} gap="xs" mb={4} align="flex-start" wrap="nowrap">
+            <Badge size="md" variant="light" style={{ flexShrink: 0 }}>
+              {entry.pos}
+            </Badge>
             {firstDef && (
               <Text size="sm" c="dimmed" style={{ flex: 1 }}>
                 {firstDef.definition}

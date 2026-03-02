@@ -3,11 +3,21 @@ import type {
   PipelineResponse,
   DisambiguateRequest,
   DisambiguateResponse,
-} from "./api-types.ts";
+} from "./api_types.ts";
 
 export interface PipelineService {
   run(request: PipelineRequest): Promise<PipelineResponse>;
   redisambiguate(request: DisambiguateRequest): Promise<DisambiguateResponse>;
+}
+
+type ElectronChannel = "pipeline:run" | "pipeline:disambiguate";
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      invoke(channel: ElectronChannel, data: unknown): Promise<unknown>;
+    };
+  }
 }
 
 class WebPipelineService implements PipelineService {
@@ -24,7 +34,9 @@ class WebPipelineService implements PipelineService {
     return res.json();
   }
 
-  async redisambiguate(request: DisambiguateRequest): Promise<DisambiguateResponse> {
+  async redisambiguate(
+    request: DisambiguateRequest,
+  ): Promise<DisambiguateResponse> {
     const res = await fetch("/api/disambiguate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,4 +50,43 @@ class WebPipelineService implements PipelineService {
   }
 }
 
-export const pipelineService: PipelineService = new WebPipelineService();
+class ElectronPipelineService implements PipelineService {
+  private get api() {
+    const api = window.electronAPI;
+    if (!api) {
+      throw new Error(
+        "electronAPI is not available. " +
+          "Ensure the Electron preload script has been loaded before using ElectronPipelineService.",
+      );
+    }
+    return api;
+  }
+
+  async run(request: PipelineRequest): Promise<PipelineResponse> {
+    return this.api.invoke(
+      "pipeline:run",
+      request,
+    ) as Promise<PipelineResponse>;
+  }
+
+  async redisambiguate(
+    request: DisambiguateRequest,
+  ): Promise<DisambiguateResponse> {
+    return this.api.invoke(
+      "pipeline:disambiguate",
+      request,
+    ) as Promise<DisambiguateResponse>;
+  }
+}
+
+let _instance: PipelineService | null = null;
+
+export function getPipelineService(): PipelineService {
+  if (!_instance) {
+    const isElectron = typeof window !== "undefined" && "electronAPI" in window;
+    _instance = isElectron
+      ? new ElectronPipelineService()
+      : new WebPipelineService();
+  }
+  return _instance;
+}

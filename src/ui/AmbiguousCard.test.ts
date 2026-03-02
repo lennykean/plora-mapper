@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { groupByIpa } from "./AmbiguousCard.tsx";
+import { groupByIpa } from "./ipa-groups.ts";
 import type { WiktionaryEntry } from "../data/types.ts";
 
-function makeEntry(pos: string, ipa: string, audioUrl?: string): WiktionaryEntry {
+function makeEntry(
+  pos: string,
+  ipa: string,
+  audioUrl?: string,
+): WiktionaryEntry {
   return {
     word: "test",
     pos,

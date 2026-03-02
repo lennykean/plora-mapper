@@ -5,7 +5,10 @@ import disambiguateStep from "./disambiguate.ts";
 import type { StepOptions } from "../data/types.ts";
 export type { StepOptions } from "../data/types.ts";
 
-export const steps: Record<string, (input: string, options?: StepOptions) => unknown> = {
+export const steps: Record<
+  string,
+  (input: string, options?: StepOptions) => unknown
+> = {
   lookup,
   tokenize,
   pronounce: pronounceStep,

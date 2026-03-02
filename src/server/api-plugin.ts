@@ -1,5 +1,10 @@
 import type { Plugin } from "vite";
 import type { IncomingMessage, ServerResponse } from "http";
+import type { LookupResult } from "../data/types.ts";
+
+interface HttpError extends Error {
+  statusCode?: number;
+}
 
 function json(res: ServerResponse, data: unknown) {
   res.setHeader("Content-Type", "application/json");
@@ -18,8 +23,8 @@ function readBody(req: IncomingMessage): Promise<unknown> {
       size += c.length;
       if (size > MAX_BODY) {
         done = true;
-        const err = new Error("Request body too large");
-        (err as any).statusCode = 413;
+        const err: HttpError = new Error("Request body too large");
+        err.statusCode = 413;
         reject(err);
         req.destroy();
         return;
@@ -27,11 +32,12 @@ function readBody(req: IncomingMessage): Promise<unknown> {
       chunks.push(c);
     });
     req.on("end", () => {
+      if (done) return;
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
       } catch {
-        const err = new Error("Invalid JSON");
-        (err as any).statusCode = 400;
+        const err: HttpError = new Error("Invalid JSON");
+        err.statusCode = 400;
         reject(err);
       }
     });
@@ -49,7 +55,10 @@ export default function apiPlugin(): Plugin {
         }
 
         try {
-          const body = (await readBody(req)) as { text: string; options?: Record<string, unknown> };
+          const body = (await readBody(req)) as {
+            text: string;
+            options?: Record<string, unknown>;
+          };
 
           if (typeof body.text !== "string") {
             res.statusCode = 400;
@@ -65,9 +74,10 @@ export default function apiPlugin(): Plugin {
           const results = disambiguate(pronounceResults, body.options);
 
           json(res, { pronounceResults, results });
-        } catch (err: any) {
-          res.statusCode = err.statusCode ?? 500;
-          json(res, { error: err.message });
+        } catch (err: unknown) {
+          const httpErr = err as HttpError;
+          res.statusCode = httpErr.statusCode ?? 500;
+          json(res, { error: httpErr.message });
         }
       });
 
@@ -78,7 +88,10 @@ export default function apiPlugin(): Plugin {
         }
 
         try {
-          const body = (await readBody(req)) as { results: unknown[]; options?: Record<string, unknown> };
+          const body = (await readBody(req)) as {
+            results: unknown[];
+            options?: Record<string, unknown>;
+          };
 
           if (!Array.isArray(body.results)) {
             res.statusCode = 400;
@@ -87,11 +100,15 @@ export default function apiPlugin(): Plugin {
 
           const { disambiguate } = await import("../steps/disambiguate.ts");
 
-          const results = disambiguate(body.results as any, body.options);
+          const results = disambiguate(
+            body.results as LookupResult[],
+            body.options,
+          );
           json(res, { results });
-        } catch (err: any) {
-          res.statusCode = err.statusCode ?? 500;
-          json(res, { error: err.message });
+        } catch (err: unknown) {
+          const httpErr = err as HttpError;
+          res.statusCode = httpErr.statusCode ?? 500;
+          json(res, { error: httpErr.message });
         }
       });
     },

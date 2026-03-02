@@ -78,7 +78,9 @@ describe("pronounce", () => {
       pos: "verb",
       pronunciations: [{ ipa: "/ɪz/", notation: "phonemic" }],
       audio: [],
-      definitions: { "": [{ definition: "Third person singular of be.", labels: [] }] },
+      definitions: {
+        "": [{ definition: "Third person singular of be.", labels: [] }],
+      },
     };
     const nounNoPron: WiktionaryEntry = {
       word: "is",
@@ -168,9 +170,17 @@ describe("pronounce", () => {
       .mockResolvedValueOnce([nounEntry, verbEntry])
       .mockResolvedValueOnce([]);
 
-    const tokens = [makeToken("cat", 0), makeToken("record", 1), makeToken("xyzzy", 2)];
+    const tokens = [
+      makeToken("cat", 0),
+      makeToken("record", 1),
+      makeToken("xyzzy", 2),
+    ];
     const results = await pronounce(tokens);
 
-    expect(results.map((r) => r.status)).toEqual(["resolved", "ambiguous", "unknown"]);
+    expect(results.map((r) => r.status)).toEqual([
+      "resolved",
+      "ambiguous",
+      "unknown",
+    ]);
   });
 });

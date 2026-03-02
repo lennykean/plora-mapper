@@ -5,9 +5,24 @@ describe("tokenize", () => {
   it("splits a basic sentence into tokens", () => {
     const result = tokenize("The cat sat.");
     expect(result).toEqual([
-      { text: "The", position: 0, normalized: "the", punctuation: { leading: "", trailing: "" } },
-      { text: "cat", position: 1, normalized: "cat", punctuation: { leading: "", trailing: "" } },
-      { text: "sat", position: 2, normalized: "sat", punctuation: { leading: "", trailing: "." } },
+      {
+        text: "The",
+        position: 0,
+        normalized: "the",
+        punctuation: { leading: "", trailing: "" },
+      },
+      {
+        text: "cat",
+        position: 1,
+        normalized: "cat",
+        punctuation: { leading: "", trailing: "" },
+      },
+      {
+        text: "sat",
+        position: 2,
+        normalized: "sat",
+        punctuation: { leading: "", trailing: "." },
+      },
     ]);
   });
 
@@ -22,7 +37,12 @@ describe("tokenize", () => {
   it("strips leading and trailing punctuation", () => {
     const result = tokenize('"Hello,"');
     expect(result).toEqual([
-      { text: "Hello", position: 0, normalized: "hello", punctuation: { leading: '"', trailing: ',"' } },
+      {
+        text: "Hello",
+        position: 0,
+        normalized: "hello",
+        punctuation: { leading: '"', trailing: ',"' },
+      },
     ]);
   });
 

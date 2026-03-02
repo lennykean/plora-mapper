@@ -1,8 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import apiPlugin from './src/server/api-plugin.ts'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import apiPlugin from "./src/server/api-plugin.ts";
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: "./",
   plugins: [react(), apiPlugin()],
-})
+});

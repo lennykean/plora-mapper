@@ -1,10 +1,20 @@
 import { describe, it, expect } from "vitest";
 import type { WiktionaryEntry } from "./types.ts";
-import { parseIPA, parseAudio, parseLabels, parseDefinitions, parseWikitext, filterPronunciations, filterDefinitions } from "./wiktionary-api.ts";
+import {
+  parseIPA,
+  parseAudio,
+  parseLabels,
+  parseDefinitions,
+  parseWikitext,
+  filterPronunciations,
+  filterDefinitions,
+} from "./wiktionary-api.ts";
 
 describe("parseIPA", () => {
   it("extracts IPA values with accent markers from separate templates", () => {
-    const result = parseIPA("* {{IPA|en|/ˈɹɛkɚd/|a=GenAm}} {{IPA|en|/ˈɹɛkɔːd/|a=RP}}");
+    const result = parseIPA(
+      "* {{IPA|en|/ˈɹɛkɚd/|a=GenAm}} {{IPA|en|/ˈɹɛkɔːd/|a=RP}}",
+    );
     expect(result).toEqual([
       { ipa: "/ˈɹɛkɚd/", notation: "phonemic", accent: "GenAm" },
       { ipa: "/ˈɹɛkɔːd/", notation: "phonemic", accent: "RP" },
@@ -29,7 +39,12 @@ describe("parseIPA", () => {
   it("captures both accent and qualifier", () => {
     const result = parseIPA("* {{IPA|en|[ɾə]|a=US|q=after a vowel}}");
     expect(result).toEqual([
-      { ipa: "[ɾə]", notation: "phonetic", accent: "US", qualifier: "after a vowel" },
+      {
+        ipa: "[ɾə]",
+        notation: "phonetic",
+        accent: "US",
+        qualifier: "after a vowel",
+      },
     ]);
   });
 
@@ -46,9 +61,17 @@ describe("parseIPA", () => {
   });
 
   it("moves form-descriptor a= to qualifier when parent accent exists", () => {
-    const result = parseIPA("** {{IPA|en|/ðə/|a=weak form before consonants}}", "RP");
+    const result = parseIPA(
+      "** {{IPA|en|/ðə/|a=weak form before consonants}}",
+      "RP",
+    );
     expect(result).toEqual([
-      { ipa: "/ðə/", notation: "phonemic", accent: "RP", qualifier: "weak form before consonants" },
+      {
+        ipa: "/ðə/",
+        notation: "phonemic",
+        accent: "RP",
+        qualifier: "weak form before consonants",
+      },
     ]);
   });
 
@@ -60,9 +83,17 @@ describe("parseIPA", () => {
   });
 
   it("combines existing q= with form-descriptor a= when parent accent exists", () => {
-    const result = parseIPA("** {{IPA|en|/ðə/|a=weak form|q=before a consonant}}", "GA");
+    const result = parseIPA(
+      "** {{IPA|en|/ðə/|a=weak form|q=before a consonant}}",
+      "GA",
+    );
     expect(result).toEqual([
-      { ipa: "/ðə/", notation: "phonemic", accent: "GA", qualifier: "weak form; before a consonant" },
+      {
+        ipa: "/ðə/",
+        notation: "phonemic",
+        accent: "GA",
+        qualifier: "weak form; before a consonant",
+      },
     ]);
   });
 
@@ -76,7 +107,12 @@ describe("parseIPA", () => {
   it("splits mixed a= into accent and qualifier parts", () => {
     const result = parseIPA("* {{IPA|en|/ɘn/|a=NZ,weak form}}");
     expect(result).toEqual([
-      { ipa: "/ɘn/", notation: "phonemic", accent: "NZ", qualifier: "weak form" },
+      {
+        ipa: "/ɘn/",
+        notation: "phonemic",
+        accent: "NZ",
+        qualifier: "weak form",
+      },
     ]);
   });
 });
@@ -89,22 +125,34 @@ describe("parseLabels", () => {
 
   it("extracts multiple labels", () => {
     const result = parseLabels("computing|informal");
-    expect(result).toEqual({ grammaticalClass: "", labels: ["computing", "informal"] });
+    expect(result).toEqual({
+      grammaticalClass: "",
+      labels: ["computing", "informal"],
+    });
   });
 
   it("separates grammatical class from labels", () => {
     const result = parseLabels("transitive|legal");
-    expect(result).toEqual({ grammaticalClass: "transitive", labels: ["legal"] });
+    expect(result).toEqual({
+      grammaticalClass: "transitive",
+      labels: ["legal"],
+    });
   });
 
   it("combines multiple grammatical classes", () => {
     const result = parseLabels("countable|uncountable");
-    expect(result).toEqual({ grammaticalClass: "countable uncountable", labels: [] });
+    expect(result).toEqual({
+      grammaticalClass: "countable uncountable",
+      labels: [],
+    });
   });
 
   it("skips connectors", () => {
     const result = parseLabels("transitive|_|or|_|intransitive");
-    expect(result).toEqual({ grammaticalClass: "transitive intransitive", labels: [] });
+    expect(result).toEqual({
+      grammaticalClass: "transitive intransitive",
+      labels: [],
+    });
   });
 
   it("handles empty input", () => {
@@ -159,7 +207,12 @@ describe("parseDefinitions", () => {
       "# {{n-g|Used before a noun phrase, including a simple noun}}",
     ]);
     expect(result).toEqual({
-      "": [{ definition: "Used before a noun phrase, including a simple noun", labels: [] }],
+      "": [
+        {
+          definition: "Used before a noun phrase, including a simple noun",
+          labels: [],
+        },
+      ],
     });
   });
 
@@ -168,7 +221,7 @@ describe("parseDefinitions", () => {
       "# {{lb|en|transitive|legal}} To place on record.",
     ]);
     expect(result).toEqual({
-      "transitive": [{ definition: "To place on record.", labels: ["legal"] }],
+      transitive: [{ definition: "To place on record.", labels: ["legal"] }],
     });
   });
 
@@ -180,7 +233,9 @@ describe("parseDefinitions", () => {
   });
 
   it("strips bold and italic markup", () => {
-    const result = parseDefinitions(["# A '''strong''' and ''emphasized'' word."]);
+    const result = parseDefinitions([
+      "# A '''strong''' and ''emphasized'' word.",
+    ]);
     expect(result).toEqual({
       "": [{ definition: "A strong and emphasized word.", labels: [] }],
     });
@@ -222,8 +277,8 @@ describe("parseDefinitions", () => {
       "# {{lb|en|intransitive}} To be recorded.",
     ]);
     expect(result).toEqual({
-      "transitive": [{ definition: "To write down.", labels: [] }],
-      "intransitive": [{ definition: "To be recorded.", labels: [] }],
+      transitive: [{ definition: "To write down.", labels: [] }],
+      intransitive: [{ definition: "To be recorded.", labels: [] }],
     });
   });
 
@@ -280,7 +335,9 @@ describe("parseDefinitions", () => {
   });
 
   it("extracts text from {{cap}} template with suffix", () => {
-    const result = parseDefinitions(["# {{cap|carry|ing}} more fat than usual."]);
+    const result = parseDefinitions([
+      "# {{cap|carry|ing}} more fat than usual.",
+    ]);
     expect(result).toEqual({
       "": [{ definition: "Carrying more fat than usual.", labels: [] }],
     });
@@ -320,7 +377,9 @@ describe("parseWikitext", () => {
     expect(result).toHaveLength(1);
     expect(result[0].word).toBe("cat");
     expect(result[0].pos).toBe("noun");
-    expect(result[0].pronunciations).toEqual([{ ipa: "/kæt/", notation: "phonemic" }]);
+    expect(result[0].pronunciations).toEqual([
+      { ipa: "/kæt/", notation: "phonemic" },
+    ]);
     expect(result[0].definitions[""]).toEqual([
       { definition: "A domesticated feline.", labels: [] },
     ]);
@@ -361,9 +420,13 @@ describe("parseWikitext", () => {
 
     const result = parseWikitext("lead", wikitext);
     expect(result).toHaveLength(2);
-    expect(result[0].pronunciations).toEqual([{ ipa: "/liːd/", notation: "phonemic" }]);
+    expect(result[0].pronunciations).toEqual([
+      { ipa: "/liːd/", notation: "phonemic" },
+    ]);
     expect(result[0].pos).toBe("verb");
-    expect(result[1].pronunciations).toEqual([{ ipa: "/lɛd/", notation: "phonemic" }]);
+    expect(result[1].pronunciations).toEqual([
+      { ipa: "/lɛd/", notation: "phonemic" },
+    ]);
     expect(result[1].pos).toBe("noun");
   });
 
@@ -415,8 +478,12 @@ describe("parseWikitext", () => {
 
     const result = parseWikitext("cat", wikitext);
     expect(result).toHaveLength(2);
-    expect(result[0].pronunciations).toEqual([{ ipa: "/kæt/", notation: "phonemic" }]);
-    expect(result[1].pronunciations).toEqual([{ ipa: "/kæt/", notation: "phonemic" }]);
+    expect(result[0].pronunciations).toEqual([
+      { ipa: "/kæt/", notation: "phonemic" },
+    ]);
+    expect(result[1].pronunciations).toEqual([
+      { ipa: "/kæt/", notation: "phonemic" },
+    ]);
   });
 
   it("uses etymology pronunciation over top-level when both exist", () => {
@@ -436,8 +503,12 @@ describe("parseWikitext", () => {
 
     const result = parseWikitext("lead", wikitext);
     expect(result).toHaveLength(2);
-    expect(result[0].pronunciations).toEqual([{ ipa: "/liːd/", notation: "phonemic" }]);
-    expect(result[1].pronunciations).toEqual([{ ipa: "/tɒp/", notation: "phonemic" }]);
+    expect(result[0].pronunciations).toEqual([
+      { ipa: "/liːd/", notation: "phonemic" },
+    ]);
+    expect(result[1].pronunciations).toEqual([
+      { ipa: "/tɒp/", notation: "phonemic" },
+    ]);
   });
 
   it("handles POS with no definitions", () => {
@@ -495,10 +566,30 @@ describe("parseWikitext", () => {
     expect(result).toHaveLength(1);
     const prons = result[0].pronunciations;
     expect(prons).toHaveLength(4);
-    expect(prons[0]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "RP", qualifier: "weak form before consonants" });
-    expect(prons[1]).toEqual({ ipa: "/ðiː/", notation: "phonemic", accent: "RP", qualifier: "strong form" });
-    expect(prons[2]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "GA", qualifier: "weak form before consonants" });
-    expect(prons[3]).toEqual({ ipa: "/ði/", notation: "phonemic", accent: "GA", qualifier: "strong form" });
+    expect(prons[0]).toEqual({
+      ipa: "/ðə/",
+      notation: "phonemic",
+      accent: "RP",
+      qualifier: "weak form before consonants",
+    });
+    expect(prons[1]).toEqual({
+      ipa: "/ðiː/",
+      notation: "phonemic",
+      accent: "RP",
+      qualifier: "strong form",
+    });
+    expect(prons[2]).toEqual({
+      ipa: "/ðə/",
+      notation: "phonemic",
+      accent: "GA",
+      qualifier: "weak form before consonants",
+    });
+    expect(prons[3]).toEqual({
+      ipa: "/ði/",
+      notation: "phonemic",
+      accent: "GA",
+      qualifier: "strong form",
+    });
   });
 
   it("does not bleed parent accent into Pattern A lines", () => {
@@ -529,8 +620,16 @@ describe("parseWikitext", () => {
     const result = parseWikitext("hold", wikitext);
     const prons = result[0].pronunciations;
     expect(prons).toHaveLength(2);
-    expect(prons[0]).toEqual({ ipa: "/həʊld/", notation: "phonemic", accent: "UK" });
-    expect(prons[1]).toEqual({ ipa: "[həʊɫd]", notation: "phonetic", accent: "UK" });
+    expect(prons[0]).toEqual({
+      ipa: "/həʊld/",
+      notation: "phonemic",
+      accent: "UK",
+    });
+    expect(prons[1]).toEqual({
+      ipa: "[həʊɫd]",
+      notation: "phonetic",
+      accent: "UK",
+    });
   });
 
   it("parses {{a|RP}} without en| prefix as parent accent", () => {
@@ -549,8 +648,17 @@ describe("parseWikitext", () => {
     expect(result).toHaveLength(1);
     const prons = result[0].pronunciations;
     expect(prons).toHaveLength(2);
-    expect(prons[0]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "RP" });
-    expect(prons[1]).toEqual({ ipa: "/ðə/", notation: "phonemic", accent: "GA", qualifier: "weak form" });
+    expect(prons[0]).toEqual({
+      ipa: "/ðə/",
+      notation: "phonemic",
+      accent: "RP",
+    });
+    expect(prons[1]).toEqual({
+      ipa: "/ðə/",
+      notation: "phonemic",
+      accent: "GA",
+      qualifier: "weak form",
+    });
   });
 
   it("handles pronunciation header with spaces around text", () => {
@@ -564,7 +672,9 @@ describe("parseWikitext", () => {
 
     const result = parseWikitext("cat", wikitext);
     expect(result).toHaveLength(1);
-    expect(result[0].pronunciations).toEqual([{ ipa: "/kæt/", notation: "phonemic" }]);
+    expect(result[0].pronunciations).toEqual([
+      { ipa: "/kæt/", notation: "phonemic" },
+    ]);
   });
 });
 
@@ -614,45 +724,51 @@ describe("filterPronunciations", () => {
   });
 
   it("matches accent aliases (GA matches US and GenAm)", () => {
-    const usEntries: WiktionaryEntry[] = [{
-      word: "hog",
-      pos: "noun",
-      pronunciations: [
-        { ipa: "/hɑɡ/", notation: "phonemic" as const, accent: "US" },
-      ],
-      audio: [],
-      definitions: { "": [{ definition: "A pig.", labels: [] }] },
-    }];
+    const usEntries: WiktionaryEntry[] = [
+      {
+        word: "hog",
+        pos: "noun",
+        pronunciations: [
+          { ipa: "/hɑɡ/", notation: "phonemic" as const, accent: "US" },
+        ],
+        audio: [],
+        definitions: { "": [{ definition: "A pig.", labels: [] }] },
+      },
+    ];
     const result = filterPronunciations(usEntries, "GA");
     expect(result).toHaveLength(1);
     expect(result[0].pronunciations).toHaveLength(1);
   });
 
   it("matches accent aliases (US matches GA)", () => {
-    const gaEntries: WiktionaryEntry[] = [{
-      word: "hold",
-      pos: "verb",
-      pronunciations: [
-        { ipa: "/hoʊldz/", notation: "phonemic" as const, accent: "GenAm" },
-      ],
-      audio: [],
-      definitions: { "": [{ definition: "To grasp.", labels: [] }] },
-    }];
+    const gaEntries: WiktionaryEntry[] = [
+      {
+        word: "hold",
+        pos: "verb",
+        pronunciations: [
+          { ipa: "/hoʊldz/", notation: "phonemic" as const, accent: "GenAm" },
+        ],
+        audio: [],
+        definitions: { "": [{ definition: "To grasp.", labels: [] }] },
+      },
+    ];
     const result = filterPronunciations(gaEntries, "US");
     expect(result).toHaveLength(1);
   });
 
   it("excludes untagged pronunciations when accent filter is active", () => {
-    const mixed: WiktionaryEntry[] = [{
-      word: "test",
-      pos: "noun",
-      pronunciations: [
-        { ipa: "/tɛst/", notation: "phonemic" as const },
-        { ipa: "/tɛst/", notation: "phonemic" as const, accent: "GA" },
-      ],
-      audio: [],
-      definitions: { "": [{ definition: "A test.", labels: [] }] },
-    }];
+    const mixed: WiktionaryEntry[] = [
+      {
+        word: "test",
+        pos: "noun",
+        pronunciations: [
+          { ipa: "/tɛst/", notation: "phonemic" as const },
+          { ipa: "/tɛst/", notation: "phonemic" as const, accent: "GA" },
+        ],
+        audio: [],
+        definitions: { "": [{ definition: "A test.", labels: [] }] },
+      },
+    ];
     const result = filterPronunciations(mixed, "GA");
     expect(result).toHaveLength(1);
     expect(result[0].pronunciations).toHaveLength(1);
@@ -671,7 +787,10 @@ describe("filterDefinitions", () => {
         "": [
           { definition: "A feline.", labels: [] },
           { definition: "A jazz musician.", labels: ["slang", "jazz"] },
-          { definition: "A spiteful woman.", labels: ["derogatory", "offensive"] },
+          {
+            definition: "A spiteful woman.",
+            labels: ["derogatory", "offensive"],
+          },
           { definition: "A catfish.", labels: ["informal"] },
         ],
       },
@@ -688,7 +807,10 @@ describe("filterDefinitions", () => {
   });
 
   it("excludes definitions matching any label-not (OR)", () => {
-    const result = filterDefinitions(entries, undefined, ["derogatory", "slang"]);
+    const result = filterDefinitions(entries, undefined, [
+      "derogatory",
+      "slang",
+    ]);
     expect(result).toHaveLength(1);
     const defs = result[0].definitions[""];
     expect(defs).toHaveLength(2);
@@ -707,21 +829,21 @@ describe("filterDefinitions", () => {
   });
 
   it("keeps entries across grammatical classes", () => {
-    const multi: WiktionaryEntry[] = [{
-      word: "record",
-      pos: "verb",
-      pronunciations: [{ ipa: "/ɹɪˈkɔːd/", notation: "phonemic" as const }],
-      audio: [],
-      definitions: {
-        "transitive": [
-          { definition: "To write down.", labels: ["legal"] },
-          { definition: "To capture audio.", labels: [] },
-        ],
-        "intransitive": [
-          { definition: "To make a recording.", labels: [] },
-        ],
+    const multi: WiktionaryEntry[] = [
+      {
+        word: "record",
+        pos: "verb",
+        pronunciations: [{ ipa: "/ɹɪˈkɔːd/", notation: "phonemic" as const }],
+        audio: [],
+        definitions: {
+          transitive: [
+            { definition: "To write down.", labels: ["legal"] },
+            { definition: "To capture audio.", labels: [] },
+          ],
+          intransitive: [{ definition: "To make a recording.", labels: [] }],
+        },
       },
-    }];
+    ];
     const result = filterDefinitions(multi, ["legal"]);
     expect(result).toHaveLength(1);
     expect(Object.keys(result[0].definitions)).toEqual(["transitive"]);
@@ -745,14 +867,18 @@ describe("parseAudio", () => {
   });
 
   it("parses IPA annotation", () => {
-    const result = parseAudio("* {{audio|en|En-uk-record.ogg|a=UK|IPA=/ˈɹɛkɔːd/}}");
+    const result = parseAudio(
+      "* {{audio|en|En-uk-record.ogg|a=UK|IPA=/ˈɹɛkɔːd/}}",
+    );
     expect(result).toHaveLength(1);
     expect(result[0].accent).toBe("UK");
     expect(result[0].ipa).toBe("/ˈɹɛkɔːd/");
   });
 
   it("parses multiple audio templates on one line", () => {
-    const result = parseAudio("* {{audio|en|En-us-cat.ogg|a=US}} {{audio|en|En-uk-cat.ogg|a=UK}}");
+    const result = parseAudio(
+      "* {{audio|en|En-us-cat.ogg|a=US}} {{audio|en|En-uk-cat.ogg|a=UK}}",
+    );
     expect(result).toHaveLength(2);
     expect(result[0].accent).toBe("US");
     expect(result[1].accent).toBe("UK");

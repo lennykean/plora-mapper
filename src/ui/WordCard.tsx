@@ -17,17 +17,19 @@ export default function WordCard({ result, ipa }: WordCardProps) {
     <Box px="md" py="xs">
       {showWords && (
         <Text size="2rem" fw={500} lh={1.2} mb={showIpa ? "sm" : 0}>
-          {result.token.punctuation.leading}{result.token.text}{result.token.punctuation.trailing}
+          {result.token.punctuation.leading}
+          {result.token.text}
+          {result.token.punctuation.trailing}
         </Text>
       )}
       {showIpa && (
         <Text
           size="lg"
-          c={result.status === "unknown" || !displayIpa ? "red" : "dimmed"}
+          c={!displayIpa ? "red" : "dimmed"}
           ff="'Gentium Plus', 'Lucida Sans Unicode', serif"
           lh={1.2}
         >
-          {result.status === "unknown" || !displayIpa ? "???" : displayIpa}
+          {displayIpa || "???"}
         </Text>
       )}
     </Box>

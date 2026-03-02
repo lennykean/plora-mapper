@@ -25,11 +25,22 @@ export default function WordGrid() {
 
         if (isOverridden && overrideIdx < result.entries.length) {
           const entry = result.entries[overrideIdx];
+          const overrideIpa = entry?.pronunciations[0]?.ipa;
+          if (!overrideIpa) {
+            return (
+              <UnknownCard
+                key={pos}
+                result={result}
+                manualIpa={state.manualIpa[pos]}
+                onSetIpa={(ipa) => setManualIpa(pos, ipa)}
+              />
+            );
+          }
           return (
             <WordCard
               key={pos}
               result={{ ...result, status: "resolved" }}
-              ipa={entry?.pronunciations[0]?.ipa}
+              ipa={overrideIpa}
             />
           );
         }
@@ -72,6 +83,18 @@ export default function WordGrid() {
               key={pos}
               result={result}
               onSelect={(entryIndex) => override(pos, entryIndex)}
+            />
+          );
+        }
+
+        const firstIpa = result.entries[0]?.pronunciations[0]?.ipa;
+        if (!firstIpa) {
+          return (
+            <UnknownCard
+              key={pos}
+              result={result}
+              manualIpa={state.manualIpa[pos]}
+              onSetIpa={(ipa) => setManualIpa(pos, ipa)}
             />
           );
         }

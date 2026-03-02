@@ -14,18 +14,39 @@ function makeEntry(word: string, pos: string, ipa: string): WiktionaryEntry {
   };
 }
 
-function makeResult(word: string, position: number, entries: WiktionaryEntry[]): LookupResult {
+function makeResult(
+  word: string,
+  position: number,
+  entries: WiktionaryEntry[],
+): LookupResult {
   if (entries.length === 0) {
     return {
       status: "unknown",
-      token: { text: word, position, normalized: word.toLowerCase(), punctuation: { leading: "", trailing: "" } },
+      token: {
+        text: word,
+        position,
+        normalized: word.toLowerCase(),
+        punctuation: { leading: "", trailing: "" },
+      },
       entries,
     };
   }
-  const keys = new Set(entries.map((e) => e.pronunciations.map((p) => p.ipa).sort().join("|")));
+  const keys = new Set(
+    entries.map((e) =>
+      e.pronunciations
+        .map((p) => p.ipa)
+        .sort()
+        .join("|"),
+    ),
+  );
   return {
     status: keys.size <= 1 ? "resolved" : "ambiguous",
-    token: { text: word, position, normalized: word.toLowerCase(), punctuation: { leading: "", trailing: "" } },
+    token: {
+      text: word,
+      position,
+      normalized: word.toLowerCase(),
+      punctuation: { leading: "", trailing: "" },
+    },
     entries,
   };
 }
@@ -89,13 +110,17 @@ describe("disambiguate", () => {
   it("resolves 'the broken record' as noun", () => {
     const results = [
       makeResult("the", 0, [makeEntry("the", "article", "/ðə/")]),
-      makeResult("broken", 1, [makeEntry("broken", "adjective", "/ˈbɹoʊ.kən/")]),
+      makeResult("broken", 1, [
+        makeEntry("broken", "adjective", "/ˈbɹoʊ.kən/"),
+      ]),
       makeResult("record", 2, [recordNoun, recordVerb]),
     ];
     const out = disambiguate(results);
     expect(out[2].status).toBe("resolved");
     expect(out[2].entries[0].pos).toBe("noun");
-    expect(out[2].disambiguatedBy).toBe("determiner + adjective + word -> noun");
+    expect(out[2].disambiguatedBy).toBe(
+      "determiner + adjective + word -> noun",
+    );
   });
 
   // Rule 4: subject pronoun + word -> verb
@@ -130,7 +155,9 @@ describe("disambiguate", () => {
     const out = disambiguate(results);
     expect(out[2].status).toBe("resolved");
     expect(out[2].entries[0].pos).toBe("verb");
-    expect(out[2].disambiguatedBy).toBe("subject pronoun + adverb + word -> verb");
+    expect(out[2].disambiguatedBy).toBe(
+      "subject pronoun + adverb + word -> verb",
+    );
   });
 
   // Rule 6: modal/auxiliary + word -> verb
@@ -165,7 +192,9 @@ describe("disambiguate", () => {
     const out = disambiguate(results);
     expect(out[2].status).toBe("resolved");
     expect(out[2].entries[0].pos).toBe("verb");
-    expect(out[2].disambiguatedBy).toBe("modal/auxiliary + adverb + word -> verb");
+    expect(out[2].disambiguatedBy).toBe(
+      "modal/auxiliary + adverb + word -> verb",
+    );
   });
 
   // Rule 8: word + determiner -> verb
@@ -261,7 +290,9 @@ describe("disambiguate", () => {
     const out = disambiguate(results);
     expect(out[1].status).toBe("ambiguous");
     expect(out[1].entries).toHaveLength(2);
-    expect(out[1].disambiguatedBy).toBe("subject pronoun + word -> verb (narrowed)");
+    expect(out[1].disambiguatedBy).toBe(
+      "subject pronoun + word -> verb (narrowed)",
+    );
   });
 
   // Multiple heteronyms in one sentence
@@ -285,7 +316,9 @@ describe("disambiguate", () => {
     const results = [
       makeResult("conduct", 0, [conductNoun, conductVerb]),
       makeResult("the", 1, [makeEntry("the", "article", "/ðə/")]),
-      makeResult("orchestra", 2, [makeEntry("orchestra", "noun", "/ˈɔːr.kɪ.strə/")]),
+      makeResult("orchestra", 2, [
+        makeEntry("orchestra", "noun", "/ˈɔːr.kɪ.strə/"),
+      ]),
     ];
     const out = disambiguate(results);
     expect(out[0].status).toBe("resolved");
@@ -327,11 +360,18 @@ describe("disambiguate", () => {
 
   describe("qualifier preference", () => {
     function makeEntryWithQualifiers(
-      word: string, pos: string, prons: { ipa: string; qualifier?: string }[],
+      word: string,
+      pos: string,
+      prons: { ipa: string; qualifier?: string }[],
     ): WiktionaryEntry {
       return {
-        word, pos,
-        pronunciations: prons.map((p) => ({ ipa: p.ipa, notation: "phonemic" as const, qualifier: p.qualifier })),
+        word,
+        pos,
+        pronunciations: prons.map((p) => ({
+          ipa: p.ipa,
+          notation: "phonemic" as const,
+          qualifier: p.qualifier,
+        })),
         audio: [],
         definitions: { "": [{ definition: `${pos} sense`, labels: [] }] },
       };
@@ -362,9 +402,7 @@ describe("disambiguate", () => {
         { ipa: "/eɪ/", qualifier: "stressed" },
         { ipa: "/ə/" },
       ]);
-      const pronoun = makeEntryWithQualifiers("a", "pronoun", [
-        { ipa: "/ə/" },
-      ]);
+      const pronoun = makeEntryWithQualifiers("a", "pronoun", [{ ipa: "/ə/" }]);
       const results = makeResult("a", 0, [article, pronoun]);
       results.status = "ambiguous";
 
@@ -388,7 +426,9 @@ describe("disambiguate", () => {
     });
 
     it("leaves resolved tokens unchanged", () => {
-      const results = [makeResult("cat", 0, [makeEntry("cat", "noun", "/kæt/")])];
+      const results = [
+        makeResult("cat", 0, [makeEntry("cat", "noun", "/kæt/")]),
+      ];
       const out = disambiguate(results, { preferQualifier: ["unstressed"] });
       expect(out[0].status).toBe("resolved");
       expect(out[0].disambiguatedBy).toBeUndefined();
@@ -432,7 +472,9 @@ describe("disambiguate", () => {
       expect(out1[1].status).toBe("ambiguous");
 
       // With qualifier preference: resolves to present tense
-      const out2 = disambiguate(results, { preferQualifier: ["present tense"] });
+      const out2 = disambiguate(results, {
+        preferQualifier: ["present tense"],
+      });
       expect(out2[1].status).toBe("resolved");
       expect(out2[1].entries).toHaveLength(1);
       expect(out2[1].entries[0].pronunciations[0].ipa).toBe("/ɹiːd/");

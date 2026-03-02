@@ -28,7 +28,9 @@ export default function AppShell() {
       <Box style={{ flex: 1, overflowY: "auto" }} p="md">
         <Container size="lg">
           {state.error && (
-            <Alert color="red" mb="md">{state.error}</Alert>
+            <Alert color="red" mb="md">
+              {state.error}
+            </Alert>
           )}
           <WordGrid />
         </Container>

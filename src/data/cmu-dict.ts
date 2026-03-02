@@ -1,20 +1,49 @@
 import { readFileSync, existsSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { resolve } from "path";
 import type { WiktionaryEntry } from "./types.ts";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DICT_PATH = resolve(__dirname, "../../data/cmudict.dict");
+import { getDataDir } from "./paths.ts";
 
 // ARPABET base phonemes -> IPA (without stress)
 const ARPABET_TO_IPA: Record<string, string> = {
-  AA: "ɑ", AE: "æ", AH: "ʌ", AO: "ɔ", AW: "aʊ", AY: "aɪ",
-  B: "b", CH: "tʃ", D: "d", DH: "ð", EH: "ɛ", ER: "ɝ", EY: "eɪ",
-  F: "f", G: "ɡ", HH: "h", IH: "ɪ", IY: "i", JH: "dʒ",
-  K: "k", L: "l", M: "m", N: "n", NG: "ŋ",
-  OW: "oʊ", OY: "ɔɪ", P: "p", R: "ɹ", S: "s", SH: "ʃ",
-  T: "t", TH: "θ", UH: "ʊ", UW: "u", V: "v", W: "w",
-  Y: "j", Z: "z", ZH: "ʒ",
+  AA: "ɑ",
+  AE: "æ",
+  AH: "ʌ",
+  AO: "ɔ",
+  AW: "aʊ",
+  AY: "aɪ",
+  B: "b",
+  CH: "tʃ",
+  D: "d",
+  DH: "ð",
+  EH: "ɛ",
+  ER: "ɝ",
+  EY: "eɪ",
+  F: "f",
+  G: "ɡ",
+  HH: "h",
+  IH: "ɪ",
+  IY: "i",
+  JH: "dʒ",
+  K: "k",
+  L: "l",
+  M: "m",
+  N: "n",
+  NG: "ŋ",
+  OW: "oʊ",
+  OY: "ɔɪ",
+  P: "p",
+  R: "ɹ",
+  S: "s",
+  SH: "ʃ",
+  T: "t",
+  TH: "θ",
+  UH: "ʊ",
+  UW: "u",
+  V: "v",
+  W: "w",
+  Y: "j",
+  Z: "z",
+  ZH: "ʒ",
 };
 
 // Unstressed vowel reductions
@@ -33,9 +62,10 @@ export function arpabetToIPA(phonemes: string): string {
     if (stressMatch) {
       const [, base, stress] = stressMatch;
       const stressMarker = stress === "1" ? "ˈ" : stress === "2" ? "ˌ" : "";
-      const vowel = stress === "0" && UNSTRESSED_OVERRIDES[base]
-        ? UNSTRESSED_OVERRIDES[base]
-        : ARPABET_TO_IPA[base];
+      const vowel =
+        stress === "0" && UNSTRESSED_OVERRIDES[base]
+          ? UNSTRESSED_OVERRIDES[base]
+          : ARPABET_TO_IPA[base];
       if (vowel) {
         ipa += stressMarker + vowel;
       }
@@ -58,9 +88,10 @@ function ensureDict(): Map<string, string[]> {
   if (dict) return dict;
 
   dict = new Map();
-  if (!existsSync(DICT_PATH)) return dict;
+  const dictPath = resolve(getDataDir(), "cmudict.dict");
+  if (!existsSync(dictPath)) return dict;
 
-  const content = readFileSync(DICT_PATH, "utf-8");
+  const content = readFileSync(dictPath, "utf-8");
 
   for (const line of content.split("\n")) {
     if (!line || line.startsWith(";;;")) continue;
@@ -95,11 +126,13 @@ export function cmuLookup(word: string): WiktionaryEntry[] {
   return variants.map((phonemes) => ({
     word: normalized,
     pos: "unknown",
-    pronunciations: [{
-      ipa: arpabetToIPA(phonemes),
-      notation: "phonemic" as const,
-      accent: "GA",
-    }],
+    pronunciations: [
+      {
+        ipa: arpabetToIPA(phonemes),
+        notation: "phonemic" as const,
+        accent: "GA",
+      },
+    ],
     audio: [],
     definitions: {
       "": [{ definition: "(CMU Pronouncing Dictionary)", labels: ["cmu"] }],

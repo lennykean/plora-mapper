@@ -13,7 +13,10 @@ export default function tokenize(input: string): Token[] {
     const leading = leadingMatch?.[0] ?? "";
     const trailing = trailingMatch?.[0] ?? "";
 
-    const text = chunk.slice(leading.length, chunk.length - (trailing.length || 0));
+    const text = chunk.slice(
+      leading.length,
+      chunk.length - (trailing.length || 0),
+    );
     if (!text) continue;
 
     tokens.push({

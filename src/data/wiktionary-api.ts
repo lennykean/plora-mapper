@@ -1,5 +1,10 @@
 import { createHash } from "crypto";
-import type { WiktionaryEntry, Pronunciation, Definition, Audio } from "./types.ts";
+import type {
+  WiktionaryEntry,
+  Pronunciation,
+  Definition,
+  Audio,
+} from "./types.ts";
 import * as cache from "./definition-cache.ts";
 import { cmuLookup } from "./cmu-dict.ts";
 
@@ -9,7 +14,9 @@ const COMMONS_BASE = "https://upload.wikimedia.org/wikipedia/commons";
 
 function commonsUrl(filename: string): string {
   // Wikimedia normalizes: spaces → underscores, first char uppercased
-  const normalized = filename.replace(/ /g, "_").replace(/^./, (c) => c.toUpperCase());
+  const normalized = filename
+    .replace(/ /g, "_")
+    .replace(/^./, (c) => c.toUpperCase());
   const hash = createHash("md5").update(normalized).digest("hex");
   return `${COMMONS_BASE}/${hash[0]}/${hash[0]}${hash[1]}/${encodeURIComponent(normalized)}`;
 }
@@ -28,7 +35,11 @@ export function parseAudio(line: string): Audio[] {
     for (const part of rest.split("|")) {
       if (part.startsWith("a=")) {
         // Strip inline IPA from accent: "California, [deː]" -> "California"
-        accent = part.slice(2).replace(/,?\s*[\[\/][^\]\/]*[\]\/]\s*$/, "").trim() || undefined;
+        accent =
+          part
+            .slice(2)
+            .replace(/,?\s*[[\\/][^\]\\/]*[\]\\/]\s*$/, "")
+            .trim() || undefined;
       } else if (part.startsWith("IPA=")) ipa = part.slice(4);
     }
 
@@ -43,41 +54,94 @@ export function parseAudio(line: string): Audio[] {
 }
 
 const KNOWN_ACCENTS = new Set([
-  "RP", "GA", "GenAm", "UK", "US", "AU", "NZ", "CA", "SA",
-  "Ireland", "IE", "Scotland", "India", "Northumbrian", "Desi",
-  "Canada", "California", "Pacific Northwest", "Northern US", "Inland North",
-  "HK", "SG", "Malaysia", "Philippines", "South Africa",
-  "SSB", "Southern American English", "Ulster",
+  "RP",
+  "GA",
+  "GenAm",
+  "UK",
+  "US",
+  "AU",
+  "NZ",
+  "CA",
+  "SA",
+  "Ireland",
+  "IE",
+  "Scotland",
+  "India",
+  "Northumbrian",
+  "Desi",
+  "Canada",
+  "California",
+  "Pacific Northwest",
+  "Northern US",
+  "Inland North",
+  "HK",
+  "SG",
+  "Malaysia",
+  "Philippines",
+  "South Africa",
+  "SSB",
+  "Southern American English",
+  "Ulster",
 ]);
 
 const GRAMMATICAL_CLASSES = new Set([
-  "transitive", "intransitive", "ambitransitive", "ditransitive",
-  "ergative", "attributive", "predicative", "copulative",
-  "countable", "uncountable", "comparable", "not comparable",
-  "in the singular", "in the plural",
+  "transitive",
+  "intransitive",
+  "ambitransitive",
+  "ditransitive",
+  "ergative",
+  "attributive",
+  "predicative",
+  "copulative",
+  "countable",
+  "uncountable",
+  "comparable",
+  "not comparable",
+  "in the singular",
+  "in the plural",
 ]);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-let lastFetchTime = 0;
+let fetchQueue: Promise<void> = Promise.resolve();
 
 async function fetchWikitext(word: string): Promise<string | null> {
-  // Throttle: at least 200ms between Wiktionary API calls
-  const now = Date.now();
-  const elapsed = now - lastFetchTime;
-  if (elapsed < 200) await sleep(200 - elapsed);
-  lastFetchTime = Date.now();
+  // Enqueue this request to ensure sequential execution with 200ms gaps.
+  // This prevents concurrent Promise.all calls from defeating the throttle.
+  return new Promise((resolve) => {
+    fetchQueue = fetchQueue
+      .then(async () => {
+        await sleep(200);
 
-  const url = `${API_BASE}?action=parse&page=${encodeURIComponent(word)}&prop=wikitext&format=json`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
+        const url = `${API_BASE}?action=parse&page=${encodeURIComponent(word)}&prop=wikitext&format=json`;
+        try {
+          const res = await fetch(url, {
+            headers: { "User-Agent": USER_AGENT },
+          });
+
+          if (!res.ok) {
+            resolve(null);
+            return;
+          }
+
+          const json: {
+            error?: unknown;
+            parse?: { wikitext?: { "*"?: string } };
+          } = await res.json();
+          if (json.error) {
+            resolve(null);
+            return;
+          }
+
+          resolve(json.parse?.wikitext?.["*"] ?? null);
+        } catch {
+          resolve(null);
+        }
+      })
+      .catch(() => {
+        // Ensure chain continues even if previous link failed
+        resolve(null);
+      });
   });
-
-  if (!res.ok) return null;
-
-  const json = await res.json();
-  if (json.error) return null;
-
-  return json.parse?.wikitext?.["*"] ?? null;
 }
 
 export function parseIPA(line: string, parentAccent?: string): Pronunciation[] {
@@ -96,7 +160,8 @@ export function parseIPA(line: string, parentAccent?: string): Pronunciation[] {
         // Strip wiki links from accent values: [[w:...|Display]] -> Display, [[word]] -> word
         accent = part.slice(2).replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, "$1");
       } else if (part.startsWith("q=")) qualifier = part.slice(2);
-      else if (part.startsWith("/") || part.startsWith("[")) ipaValues.push(part);
+      else if (part.startsWith("/") || part.startsWith("["))
+        ipaValues.push(part);
     }
 
     // Classify a= value: separate known dialect codes from form qualifiers
@@ -111,7 +176,9 @@ export function parseIPA(line: string, parentAccent?: string): Pronunciation[] {
       accent = knownParts.length > 0 ? knownParts.join(",") : parentAccent;
       if (qualifierParts.length > 0) {
         const formQualifier = qualifierParts.join(", ");
-        qualifier = qualifier ? `${formQualifier}; ${qualifier}` : formQualifier;
+        qualifier = qualifier
+          ? `${formQualifier}; ${qualifier}`
+          : formQualifier;
       }
     } else {
       accent = parentAccent;
@@ -131,8 +198,14 @@ export function parseIPA(line: string, parentAccent?: string): Pronunciation[] {
   return results;
 }
 
-export function parseLabels(raw: string): { grammaticalClass: string; labels: string[] } {
-  const parts = raw.split("|").map((s) => s.trim()).filter(Boolean);
+export function parseLabels(raw: string): {
+  grammaticalClass: string;
+  labels: string[];
+} {
+  const parts = raw
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const labels: string[] = [];
   let grammaticalClass = "";
 
@@ -152,7 +225,9 @@ export function parseLabels(raw: string): { grammaticalClass: string; labels: st
   return { grammaticalClass, labels };
 }
 
-export function parseDefinitions(lines: string[]): Record<string, Definition[]> {
+export function parseDefinitions(
+  lines: string[],
+): Record<string, Definition[]> {
   const grouped: Record<string, Definition[]> = {};
 
   for (const line of lines) {
@@ -185,34 +260,69 @@ export function parseDefinitions(lines: string[]): Record<string, Definition[]> 
         // Form-of templates -> human-readable text
         .replace(/\{\{plural of\|en\|([^|}]+)[^}]*\}\}/g, "plural of $1")
         .replace(/\{\{infl of\|en\|([^|}]+)\|[^}]*\}\}/g, "inflection of $1")
-        .replace(/\{\{inflection of\|en\|([^|}]+)\|[^}]*\}\}/g, "inflection of $1")
-        .replace(/\{\{past participle of\|en\|([^|}]+)[^}]*\}\}/g, "past participle of $1")
-        .replace(/\{\{present participle of\|en\|([^|}]+)[^}]*\}\}/g, "present participle of $1")
+        .replace(
+          /\{\{inflection of\|en\|([^|}]+)\|[^}]*\}\}/g,
+          "inflection of $1",
+        )
+        .replace(
+          /\{\{past participle of\|en\|([^|}]+)[^}]*\}\}/g,
+          "past participle of $1",
+        )
+        .replace(
+          /\{\{present participle of\|en\|([^|}]+)[^}]*\}\}/g,
+          "present participle of $1",
+        )
         .replace(/\{\{en-past of\|([^|}]+)[^}]*\}\}/g, "past tense of $1")
-        .replace(/\{\{en-ing form of\|([^|}]+)[^}]*\}\}/g, "present participle of $1")
-        .replace(/\{\{comparative of\|en\|([^|}]+)[^}]*\}\}/g, "comparative of $1")
-        .replace(/\{\{superlative of\|en\|([^|}]+)[^}]*\}\}/g, "superlative of $1")
-        .replace(/\{\{third-person singular of\|en\|([^|}]+)[^}]*\}\}/g, "third-person singular of $1")
-        .replace(/\{\{alt form\|en\|([^|}]+)[^}]*\}\}/g, "alternative form of $1")
-        .replace(/\{\{contraction of\|en\|([^|}]+)[^}]*\}\}/g, "contraction of $1")
+        .replace(
+          /\{\{en-ing form of\|([^|}]+)[^}]*\}\}/g,
+          "present participle of $1",
+        )
+        .replace(
+          /\{\{comparative of\|en\|([^|}]+)[^}]*\}\}/g,
+          "comparative of $1",
+        )
+        .replace(
+          /\{\{superlative of\|en\|([^|}]+)[^}]*\}\}/g,
+          "superlative of $1",
+        )
+        .replace(
+          /\{\{third-person singular of\|en\|([^|}]+)[^}]*\}\}/g,
+          "third-person singular of $1",
+        )
+        .replace(
+          /\{\{alt form\|en\|([^|}]+)[^}]*\}\}/g,
+          "alternative form of $1",
+        )
+        .replace(
+          /\{\{contraction of\|en\|([^|}]+)[^}]*\}\}/g,
+          "contraction of $1",
+        )
         // Content templates -> extract text
         .replace(/\{\{U\|([^|}]*)[^}]*\}\}/g, "$1")
-        .replace(/\{\{cap\|([^|}]+)\|([^}]*)\}\}/g, (_, word: string, suffix: string) =>
-          word.charAt(0).toUpperCase() + word.slice(1) + suffix)
-        .replace(/\{\{cap\|([^}]+)\}\}/g, (_, word: string) =>
-          word.charAt(0).toUpperCase() + word.slice(1))
+        .replace(
+          /\{\{cap\|([^|}]+)\|([^}]*)\}\}/g,
+          (_, word: string, suffix: string) =>
+            word.charAt(0).toUpperCase() + word.slice(1) + suffix,
+        )
+        .replace(
+          /\{\{cap\|([^}]+)\}\}/g,
+          (_, word: string) => word.charAt(0).toUpperCase() + word.slice(1),
+        )
         .replace(/\{\{gl\|([^}]*)\}\}/g, "$1")
-        .replace(/\{\{(ux|syn|cot|hyper|hypo|ant|synonyms|hyponyms|quote-[^|]*)[^}]*\}\}/g, "")
+        .replace(
+          /\{\{(ux|syn|cot|hyper|hypo|ant|synonyms|hyponyms|quote-[^|]*)[^}]*\}\}/g,
+          "",
+        )
         .replace(/\{\{[^}]*\}\}/g, "")
         .replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
         .replace(/'''([^']*)'''/g, "$1")
         .replace(/''([^']*)''/g, "$1")
-        .replace(/\(\s*\)/g, "")           // empty parens from stripped templates
-        .replace(/\s{2,}/g, " ")           // collapse double spaces
-        .replace(/\s+([.,;:!?])/g, "$1")   // space before punctuation
+        .replace(/\(\s*\)/g, "") // empty parens from stripped templates
+        .replace(/\s{2,}/g, " ") // collapse double spaces
+        .replace(/\s+([.,;:!?])/g, "$1") // space before punctuation
         .trim()
-        .replace(/^[;:]\s*/, "")            // leading semicolon/colon from stripped templates
-        .replace(/:$/, "");                 // trailing colon
+        .replace(/^[;:]\s*/, "") // leading semicolon/colon from stripped templates
+        .replace(/:$/, ""); // trailing colon
 
       if (!def || /^[\s.,;:!?]+$/.test(def)) continue;
 
@@ -227,17 +337,44 @@ export function parseDefinitions(lines: string[]): Record<string, Definition[]> 
 
 // Headers that are NOT part-of-speech sections (skip these, treat everything else as POS)
 const NON_POS_HEADERS = new Set([
-  "Pronunciation", "Etymology", "Usage notes", "Synonyms", "Antonyms",
-  "Derived terms", "Related terms", "Translations", "See also",
-  "References", "Further reading", "Anagrams", "Alternative forms",
-  "Declension", "Conjugation", "Inflection", "Descendants",
-  "Coordinate terms", "Hypernyms", "Hyponyms", "Meronyms", "Holonyms",
-  "Troponyms", "Collocations", "Quotations", "Statistics",
-  "Mutation", "Trivia", "Notes", "Gallery", "Production",
+  "Pronunciation",
+  "Etymology",
+  "Usage notes",
+  "Synonyms",
+  "Antonyms",
+  "Derived terms",
+  "Related terms",
+  "Translations",
+  "See also",
+  "References",
+  "Further reading",
+  "Anagrams",
+  "Alternative forms",
+  "Declension",
+  "Conjugation",
+  "Inflection",
+  "Descendants",
+  "Coordinate terms",
+  "Hypernyms",
+  "Hyponyms",
+  "Meronyms",
+  "Holonyms",
+  "Troponyms",
+  "Collocations",
+  "Quotations",
+  "Statistics",
+  "Mutation",
+  "Trivia",
+  "Notes",
+  "Gallery",
+  "Production",
   "Compounds",
 ]);
 
-export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[] {
+export function parseWikitext(
+  word: string,
+  wikitext: string,
+): WiktionaryEntry[] {
   const entries: WiktionaryEntry[] = [];
   const lines = wikitext.split("\n");
 
@@ -254,9 +391,9 @@ export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[]
 
   const englishLines = lines.slice(englishStart, englishEnd);
 
-  let topLevelPronunciations: Pronunciation[] = [];
+  const topLevelPronunciations: Pronunciation[] = [];
   let currentPronunciations: Pronunciation[] = [];
-  let topLevelAudio: Audio[] = [];
+  const topLevelAudio: Audio[] = [];
   let currentAudio: Audio[] = [];
   let seenEtymology = false;
   let currentPos: string | null = null;
@@ -265,12 +402,11 @@ export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[]
 
   function flushEntry() {
     if (currentPos && defLines.length > 0) {
-      const pronunciations = currentPronunciations.length > 0
-        ? currentPronunciations
-        : topLevelPronunciations;
-      const audio = currentAudio.length > 0
-        ? currentAudio
-        : topLevelAudio;
+      const pronunciations =
+        currentPronunciations.length > 0
+          ? currentPronunciations
+          : topLevelPronunciations;
+      const audio = currentAudio.length > 0 ? currentAudio : topLevelAudio;
       entries.push({
         word: word.toLowerCase(),
         pos: currentPos.toLowerCase(),
@@ -363,9 +499,17 @@ export function parseWikitext(word: string, wikitext: string): WiktionaryEntry[]
   const merged: WiktionaryEntry[] = [];
   for (const entry of entries) {
     if (Object.keys(entry.definitions).length === 0) continue;
-    const pronKey = entry.pronunciations.map((p) => p.ipa).sort().join("|");
+    const pronKey = entry.pronunciations
+      .map((p) => p.ipa)
+      .sort()
+      .join("|");
     const existing = merged.find(
-      (e) => e.pos === entry.pos && e.pronunciations.map((p) => p.ipa).sort().join("|") === pronKey,
+      (e) =>
+        e.pos === entry.pos &&
+        e.pronunciations
+          .map((p) => p.ipa)
+          .sort()
+          .join("|") === pronKey,
     );
     if (existing) {
       for (const [cls, defs] of Object.entries(entry.definitions)) {
@@ -412,7 +556,11 @@ export function filterPronunciations(
       ...entry,
       pronunciations: entry.pronunciations.filter((p) => {
         if (accentSet) {
-          if (!p.accent || !p.accent.split(",").some((a) => accentSet.has(a.trim()))) return false;
+          if (
+            !p.accent ||
+            !p.accent.split(",").some((a) => accentSet.has(a.trim()))
+          )
+            return false;
         }
         if (notation && p.notation !== notation) return false;
         return true;
@@ -431,7 +579,8 @@ export function filterDefinitions(
       const filtered: Record<string, Definition[]> = {};
       for (const [cls, defs] of Object.entries(entry.definitions)) {
         const kept = defs.filter((d) => {
-          if (labelNot && labelNot.some((l) => d.labels.includes(l))) return false;
+          if (labelNot && labelNot.some((l) => d.labels.includes(l)))
+            return false;
           if (label && !label.some((l) => d.labels.includes(l))) return false;
           return true;
         });
@@ -442,7 +591,10 @@ export function filterDefinitions(
     .filter((entry) => Object.keys(entry.definitions).length > 0);
 }
 
-function applyFilters(entries: WiktionaryEntry[], options?: LookupOptions): WiktionaryEntry[] {
+function applyFilters(
+  entries: WiktionaryEntry[],
+  options?: LookupOptions,
+): WiktionaryEntry[] {
   let result = entries;
   if (options?.accent || options?.notation) {
     result = filterPronunciations(result, options.accent, options.notation);
@@ -453,7 +605,10 @@ function applyFilters(entries: WiktionaryEntry[], options?: LookupOptions): Wikt
   return result;
 }
 
-export async function lookup(word: string, options?: LookupOptions): Promise<WiktionaryEntry[]> {
+export async function lookup(
+  word: string,
+  options?: LookupOptions,
+): Promise<WiktionaryEntry[]> {
   const verbose = options?.verbose ?? false;
   const normalized = word.toLowerCase();
 
@@ -464,7 +619,8 @@ export async function lookup(word: string, options?: LookupOptions): Promise<Wik
     if (verbose) console.error(`[cache hit] ${normalized}`);
     entries = cached;
   } else {
-    if (verbose) console.error(`[cache miss] ${normalized} — fetching from Wiktionary`);
+    if (verbose)
+      console.error(`[cache miss] ${normalized} — fetching from Wiktionary`);
 
     const wikitext = await fetchWikitext(normalized);
     entries = wikitext ? parseWikitext(normalized, wikitext) : [];
@@ -472,9 +628,11 @@ export async function lookup(word: string, options?: LookupOptions): Promise<Wik
     // Fallback: try capitalized form when lowercase yields nothing
     // Handles "i'm" -> "I'm", "i" -> "I", proper nouns, etc.
     if (entries.length === 0) {
-      const capitalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      const capitalized =
+        normalized.charAt(0).toUpperCase() + normalized.slice(1);
       if (capitalized !== normalized) {
-        if (verbose) console.error(`[fallback] trying capitalized: ${capitalized}`);
+        if (verbose)
+          console.error(`[fallback] trying capitalized: ${capitalized}`);
         const capWikitext = await fetchWikitext(capitalized);
         if (capWikitext) {
           entries = parseWikitext(normalized, capWikitext);
@@ -492,7 +650,10 @@ export async function lookup(word: string, options?: LookupOptions): Promise<Wik
     const cmuEntries = cmuLookup(normalized);
     if (cmuEntries.length > 0) {
       if (entries.length > 0) {
-        entries = entries.map(e => ({ ...e, pronunciations: cmuEntries[0].pronunciations }));
+        entries = entries.map((e) => ({
+          ...e,
+          pronunciations: cmuEntries[0].pronunciations,
+        }));
       } else {
         entries = cmuEntries;
       }
@@ -506,7 +667,10 @@ export async function lookup(word: string, options?: LookupOptions): Promise<Wik
   if (filtered.length === 0 && entries.length > 0) {
     const cmuEntries = cmuLookup(normalized);
     if (cmuEntries.length > 0) {
-      entries = entries.map(e => ({ ...e, pronunciations: cmuEntries[0].pronunciations }));
+      entries = entries.map((e) => ({
+        ...e,
+        pronunciations: cmuEntries[0].pronunciations,
+      }));
       filtered = applyFilters(entries, options);
       if (verbose) console.error(`[cmu post-filter fallback] ${normalized}`);
     }

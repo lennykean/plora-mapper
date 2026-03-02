@@ -1,7 +1,8 @@
 const { mkdirSync, createWriteStream } = require("fs");
 const https = require("https");
 
-const URL = "https://raw.githubusercontent.com/cmusphinx/cmudict/refs/heads/master/cmudict.dict";
+const URL =
+  "https://raw.githubusercontent.com/cmusphinx/cmudict/refs/heads/master/cmudict.dict";
 const DEST = "data/cmudict.dict";
 
 mkdirSync("data", { recursive: true });

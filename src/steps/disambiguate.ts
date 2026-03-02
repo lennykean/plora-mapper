@@ -6,32 +6,83 @@ import type { StepOptions } from "../data/types.ts";
 // ── Word classification sets ──────────────────────────────────────
 
 const DETERMINERS = new Set([
-  "the", "a", "an", "this", "that", "these", "those",
-  "my", "your", "his", "her", "its", "our", "their",
-  "some", "any", "no", "every", "each", "which", "what",
+  "the",
+  "a",
+  "an",
+  "this",
+  "that",
+  "these",
+  "those",
+  "my",
+  "your",
+  "his",
+  "her",
+  "its",
+  "our",
+  "their",
+  "some",
+  "any",
+  "no",
+  "every",
+  "each",
+  "which",
+  "what",
 ]);
 
 const SUBJECT_PRONOUNS = new Set([
-  "i", "you", "he", "she", "it", "we", "they", "who",
+  "i",
+  "you",
+  "he",
+  "she",
+  "it",
+  "we",
+  "they",
+  "who",
 ]);
 
-const OBJECT_PRONOUNS = new Set([
-  "me", "him", "her", "us", "them", "whom",
-]);
+const OBJECT_PRONOUNS = new Set(["me", "him", "her", "us", "them", "whom"]);
 
 const MODALS = new Set([
-  "will", "would", "shall", "should", "can", "could",
-  "may", "might", "must",
+  "will",
+  "would",
+  "shall",
+  "should",
+  "can",
+  "could",
+  "may",
+  "might",
+  "must",
 ]);
 
 const AUXILIARIES = new Set([
-  "do", "does", "did", "have", "has", "had",
-  "am", "is", "are", "was", "were", "be", "been", "being",
+  "do",
+  "does",
+  "did",
+  "have",
+  "has",
+  "had",
+  "am",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
 ]);
 
 const ADVERBS_PREVERBAL = new Set([
-  "not", "never", "always", "often", "also", "just",
-  "already", "still", "only", "usually", "sometimes",
+  "not",
+  "never",
+  "always",
+  "often",
+  "also",
+  "just",
+  "already",
+  "still",
+  "only",
+  "usually",
+  "sometimes",
 ]);
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -50,19 +101,33 @@ interface GrammarRule {
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-function tokenNorm(results: LookupResult[], index: number, offset: number): string | null {
+function tokenNorm(
+  results: LookupResult[],
+  index: number,
+  offset: number,
+): string | null {
   const i = index + offset;
   if (i < 0 || i >= results.length) return null;
   return results[i].token.normalized;
 }
 
-function hasPOS(results: LookupResult[], index: number, offset: number, pos: string): boolean {
+function hasPOS(
+  results: LookupResult[],
+  index: number,
+  offset: number,
+  pos: string,
+): boolean {
   const i = index + offset;
   if (i < 0 || i >= results.length) return false;
   return results[i].entries.some((e) => e.pos === pos);
 }
 
-function hasOnlyPOS(results: LookupResult[], index: number, offset: number, pos: string): boolean {
+function hasOnlyPOS(
+  results: LookupResult[],
+  index: number,
+  offset: number,
+  pos: string,
+): boolean {
   const i = index + offset;
   if (i < 0 || i >= results.length) return false;
   const entries = results[i].entries;
@@ -119,7 +184,9 @@ const RULES: GrammarRule[] = [
     apply({ index, results, candidatePOS }) {
       if (!candidatePOS.has("verb")) return null;
       const prev = tokenNorm(results, index, -1);
-      return prev && (MODALS.has(prev) || AUXILIARIES.has(prev)) ? "verb" : null;
+      return prev && (MODALS.has(prev) || AUXILIARIES.has(prev))
+        ? "verb"
+        : null;
     },
   },
   {
@@ -127,7 +194,8 @@ const RULES: GrammarRule[] = [
     apply({ index, results, candidatePOS }) {
       if (!candidatePOS.has("verb")) return null;
       const prevPrev = tokenNorm(results, index, -2);
-      if (!prevPrev || !(MODALS.has(prevPrev) || AUXILIARIES.has(prevPrev))) return null;
+      if (!prevPrev || !(MODALS.has(prevPrev) || AUXILIARIES.has(prevPrev)))
+        return null;
       const prev = tokenNorm(results, index, -1);
       return prev && ADVERBS_PREVERBAL.has(prev) ? "verb" : null;
     },
@@ -159,21 +227,32 @@ const RULES: GrammarRule[] = [
 
 // ── Qualifier preference ─────────────────────────────────────────
 
-function narrowByQualifier(entry: WiktionaryEntry, options: StepOptions): WiktionaryEntry {
+function narrowByQualifier(
+  entry: WiktionaryEntry,
+  options: StepOptions,
+): WiktionaryEntry {
   if (entry.pronunciations.length <= 1) return entry;
 
   let prons = entry.pronunciations;
 
   if (options.preferQualifier?.length) {
     const matching = prons.filter(
-      (p) => p.qualifier && options.preferQualifier!.some((q) => p.qualifier!.toLowerCase().includes(q.toLowerCase())),
+      (p) =>
+        p.qualifier &&
+        options.preferQualifier!.some((q) =>
+          p.qualifier!.toLowerCase().includes(q.toLowerCase()),
+        ),
     );
     if (matching.length > 0) prons = matching;
   }
 
   if (options.preferQualifierNot?.length) {
     const matching = prons.filter(
-      (p) => !p.qualifier || !options.preferQualifierNot!.some((q) => p.qualifier!.toLowerCase().includes(q.toLowerCase())),
+      (p) =>
+        !p.qualifier ||
+        !options.preferQualifierNot!.some((q) =>
+          p.qualifier!.toLowerCase().includes(q.toLowerCase()),
+        ),
     );
     if (matching.length > 0) prons = matching;
   }
@@ -182,7 +261,10 @@ function narrowByQualifier(entry: WiktionaryEntry, options: StepOptions): Wiktio
   return { ...entry, pronunciations: prons };
 }
 
-function applyQualifierPreference(result: LookupResult, options: StepOptions): LookupResult {
+function applyQualifierPreference(
+  result: LookupResult,
+  options: StepOptions,
+): LookupResult {
   if (result.status !== "ambiguous") return result;
 
   // Step 1: Narrow pronunciations within entries
@@ -191,49 +273,85 @@ function applyQualifierPreference(result: LookupResult, options: StepOptions): L
   // Step 2: Filter entries — prefer entries whose pronunciations match the qualifier
   if (options.preferQualifier?.length) {
     const matching = entries.filter((e) =>
-      e.pronunciations.some((p) =>
-        p.qualifier && options.preferQualifier!.some((q) => p.qualifier!.toLowerCase().includes(q.toLowerCase())),
+      e.pronunciations.some(
+        (p) =>
+          p.qualifier &&
+          options.preferQualifier!.some((q) =>
+            p.qualifier!.toLowerCase().includes(q.toLowerCase()),
+          ),
       ),
     );
     if (matching.length > 0) entries = matching;
   }
   if (options.preferQualifierNot?.length) {
     const matching = entries.filter((e) =>
-      e.pronunciations.some((p) =>
-        !p.qualifier || !options.preferQualifierNot!.some((q) => p.qualifier!.toLowerCase().includes(q.toLowerCase())),
+      e.pronunciations.some(
+        (p) =>
+          !p.qualifier ||
+          !options.preferQualifierNot!.some((q) =>
+            p.qualifier!.toLowerCase().includes(q.toLowerCase()),
+          ),
       ),
     );
     if (matching.length > 0) entries = matching;
   }
 
   // Did anything actually change?
-  const changed = entries.length !== result.entries.length || entries.some((e, i) => e !== result.entries[i]);
+  const changed =
+    entries.length !== result.entries.length ||
+    entries.some((e, i) => e !== result.entries[i]);
   if (!changed) return result;
 
   // Re-check: do all entries with pronunciations now share a common IPA?
   const withPron = entries.filter((e) => e.pronunciations.length > 0);
   if (withPron.length <= 1) {
-    return { ...result, entries, status: "resolved" as const, disambiguatedBy: "qualifier preference" };
+    return {
+      ...result,
+      entries,
+      status: "resolved" as const,
+      disambiguatedBy: "qualifier preference",
+    };
   }
 
-  const ipaSets = withPron.map((e) => new Set(e.pronunciations.map((p) => p.ipa)));
-  const shared = [...ipaSets[0]].some((ipa) => ipaSets.every((s) => s.has(ipa)));
+  const ipaSets = withPron.map(
+    (e) => new Set(e.pronunciations.map((p) => p.ipa)),
+  );
+  const shared = [...ipaSets[0]].some((ipa) =>
+    ipaSets.every((s) => s.has(ipa)),
+  );
   if (shared) {
-    return { ...result, entries, status: "resolved" as const, disambiguatedBy: "qualifier preference" };
+    return {
+      ...result,
+      entries,
+      status: "resolved" as const,
+      disambiguatedBy: "qualifier preference",
+    };
   }
 
   // Narrowed but still ambiguous — annotate that something changed
-  return { ...result, entries, disambiguatedBy: "qualifier preference (narrowed)" };
+  return {
+    ...result,
+    entries,
+    disambiguatedBy: "qualifier preference (narrowed)",
+  };
 }
 
 // ── Core disambiguation ──────────────────────────────────────────
 
-export function disambiguate(results: LookupResult[], options?: StepOptions): LookupResult[] {
+export function disambiguate(
+  results: LookupResult[],
+  options?: StepOptions,
+): LookupResult[] {
   const afterRules = results.map((result, index) => {
     if (result.status !== "ambiguous") return result;
 
     const candidatePOS = new Set(result.entries.map((e) => e.pos));
-    const ctx: DisambiguationContext = { target: result, index, results, candidatePOS };
+    const ctx: DisambiguationContext = {
+      target: result,
+      index,
+      results,
+      candidatePOS,
+    };
 
     for (const rule of RULES) {
       const pos = rule.apply(ctx);
@@ -273,7 +391,10 @@ export function disambiguate(results: LookupResult[], options?: StepOptions): Lo
 
 // ── Step entry point ─────────────────────────────────────────────
 
-export default async function disambiguateStep(input: string, options?: StepOptions) {
+export default async function disambiguateStep(
+  input: string,
+  options?: StepOptions,
+) {
   const tokens = tokenize(input);
   const pronounced = await pronounce(tokens, options);
   return disambiguate(pronounced, options);
