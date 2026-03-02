@@ -15,6 +15,13 @@ asarUnpack:
 win:
   target: nsis
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  identity: null
+  category: public.app-category.education
+  minimumSystemVersion: "10.15.0"
 linux:
   target: AppImage

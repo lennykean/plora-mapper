@@ -1,4 +1,4 @@
-name: Build & Release (Windows)
+name: Build & Release
 
 on:
   push:
@@ -73,3 +73,39 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release/*.exe
+
+  build-macos:
+    needs: check
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Rebuild native modules for Electron
+        run: npx electron-builder install-app-deps
+
+      - name: Download CMU dictionary
+        run: npm run fetch:cmudict
+
+      - name: Build renderer
+        run: npx vite build
+
+      - name: Build Electron main + preload
+        run: npx tsx scripts/build-electron.ts
+
+      - name: Package macOS DMG
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          npx electron-builder --mac --publish never --config.extraMetadata.version="$VERSION"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.dmg
