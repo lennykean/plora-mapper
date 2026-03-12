@@ -103,7 +103,7 @@ jobs:
       - name: Package macOS DMG
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
-          npx electron-builder --mac --publish never --config.extraMetadata.version="$VERSION"
+          npx electron-builder --mac --universal --publish never --config.extraMetadata.version="$VERSION"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2

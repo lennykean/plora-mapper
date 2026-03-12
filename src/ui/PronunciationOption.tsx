@@ -1,6 +1,11 @@
 import { Box, Button, Group, Text, Badge } from "@mantine/core";
 import type { WiktionaryEntry, Audio } from "../data/types.ts";
 import AudioButton from "./AudioButton.tsx";
+import { usePipeline } from "./hooks/use-pipeline.tsx";
+import { ipaToPlora } from "../data/plora-map.ts";
+
+const IPA_FONT = "'Gentium Plus', 'Lucida Sans Unicode', serif";
+const PLORA_FONT = "'Plora', sans-serif";
 
 interface PronunciationOptionProps {
   ipa: string;
@@ -15,6 +20,9 @@ export default function PronunciationOption({
   audio,
   onSelect,
 }: PronunciationOptionProps) {
+  const { state } = usePipeline();
+  const isPlora = state.phonemeDisplay === "plora";
+
   return (
     <Box
       p="sm"
@@ -22,11 +30,12 @@ export default function PronunciationOption({
     >
       <Group gap="xs" mb="xs">
         <Text
-          size="md"
+          size={isPlora ? "xl" : "1.2rem"}
           fw={500}
-          ff="'Gentium Plus', 'Lucida Sans Unicode', serif"
+          ff={isPlora ? PLORA_FONT : IPA_FONT}
+          style={isPlora ? { letterSpacing: "0.15em" } : undefined}
         >
-          {ipa}
+          {isPlora ? ipaToPlora(ipa) : ipa}
         </Text>
         {audio && <AudioButton url={audio.url} />}
       </Group>

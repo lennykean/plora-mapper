@@ -69,7 +69,7 @@ export default function AmbiguousCard({
         )}
         {showIpa && (
           <Text
-            size="lg"
+            size="1.6rem"
             c="red"
             ff="'Gentium Plus', 'Lucida Sans Unicode', serif"
             lh={1.2}

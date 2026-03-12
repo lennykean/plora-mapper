@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Box, Text, TextInput, Paper, Button, Group } from "@mantine/core";
 import type { LookupResult } from "../data/types.ts";
 import { usePipeline } from "./hooks/use-pipeline.tsx";
+import { ipaToPlora } from "../data/plora-map.ts";
+
+const IPA_FONT = "'Gentium Plus', 'Lucida Sans Unicode', serif";
+const PLORA_FONT = "'Plora', sans-serif";
 
 interface UnknownCardProps {
   result: LookupResult;
@@ -83,12 +87,17 @@ export default function UnknownCard({
         )}
         {showIpa && (
           <Text
-            size="lg"
+            size={state.phonemeDisplay === "plora" ? "2rem" : "1.6rem"}
             c="red"
-            ff="'Gentium Plus', 'Lucida Sans Unicode', serif"
+            ff={state.phonemeDisplay === "plora" ? PLORA_FONT : IPA_FONT}
             lh={1.2}
+            style={state.phonemeDisplay === "plora" ? { letterSpacing: "0.15em" } : undefined}
           >
-            {manualIpa || "???"}
+            {manualIpa
+              ? state.phonemeDisplay === "plora"
+                ? ipaToPlora(manualIpa)
+                : manualIpa
+              : "???"}
           </Text>
         )}
       </div>

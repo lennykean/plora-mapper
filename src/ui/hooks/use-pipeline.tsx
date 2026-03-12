@@ -12,11 +12,12 @@ import { getPipelineService } from "../../api/pipeline-service.ts";
 // ── State ────────────────────────────────────────────────────────
 
 export type DisplayMode = "both" | "words" | "ipa";
+export type PhonemeDisplay = "ipa" | "plora";
 
 export interface PipelineState {
-  draftText: string;
   input: string;
   displayMode: DisplayMode;
+  phonemeDisplay: PhonemeDisplay;
   options: StepOptions;
   pronounceResults: LookupResult[] | null;
   results: LookupResult[] | null;
@@ -29,9 +30,9 @@ export interface PipelineState {
 }
 
 const initialState: PipelineState = {
-  draftText: "",
   input: "",
   displayMode: "both",
+  phonemeDisplay: "plora",
   options: {},
   pronounceResults: null,
   results: null,
@@ -46,7 +47,6 @@ const initialState: PipelineState = {
 // ── Actions ──────────────────────────────────────────────────────
 
 type PipelineAction =
-  | { type: "SET_DRAFT"; text: string }
   | { type: "SUBMIT"; input: string }
   | { type: "RERUN"; input: string; options: StepOptions }
   | {
@@ -61,7 +61,8 @@ type PipelineAction =
   | { type: "OVERRIDE"; position: number; entryIndex: number }
   | { type: "CLEAR_OVERRIDE"; position: number }
   | { type: "MANUAL_IPA"; position: number; ipa: string }
-  | { type: "SET_DISPLAY_MODE"; mode: DisplayMode };
+  | { type: "SET_DISPLAY_MODE"; mode: DisplayMode }
+  | { type: "SET_PHONEME_DISPLAY"; phonemeDisplay: PhonemeDisplay };
 
 // ── Derivation helpers ───────────────────────────────────────────
 
@@ -103,8 +104,6 @@ function pipelineReducer(
   action: PipelineAction,
 ): PipelineState {
   switch (action.type) {
-    case "SET_DRAFT":
-      return { ...state, draftText: action.text };
     case "SUBMIT":
       return {
         ...state,
@@ -175,6 +174,8 @@ function pipelineReducer(
       };
     case "SET_DISPLAY_MODE":
       return { ...state, displayMode: action.mode };
+    case "SET_PHONEME_DISPLAY":
+      return { ...state, phonemeDisplay: action.phonemeDisplay };
     default:
       return state;
   }
@@ -193,10 +194,6 @@ function usePipelineInternal() {
   useEffect(() => {
     pronounceResultsRef.current = state.pronounceResults;
   }, [state.pronounceResults]);
-
-  const setDraftText = useCallback((text: string) => {
-    dispatch({ type: "SET_DRAFT", text });
-  }, []);
 
   const submit = useCallback(async (text: string) => {
     const nonce = ++nonceRef.current;
@@ -285,15 +282,19 @@ function usePipelineInternal() {
     dispatch({ type: "SET_DISPLAY_MODE", mode });
   }, []);
 
+  const setPhonemeDisplay = useCallback((phonemeDisplay: PhonemeDisplay) => {
+    dispatch({ type: "SET_PHONEME_DISPLAY", phonemeDisplay });
+  }, []);
+
   return {
     state,
-    setDraftText,
     submit,
     updateOptions,
     override,
     clearOverride,
     setManualIpa,
     setDisplayMode,
+    setPhonemeDisplay,
   };
 }
 

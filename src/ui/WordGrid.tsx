@@ -1,10 +1,11 @@
 import { Flex, Text } from "@mantine/core";
+import { memo } from "react";
 import { usePipeline } from "./hooks/use-pipeline.tsx";
 import WordCard from "./WordCard.tsx";
 import AmbiguousCard from "./AmbiguousCard.tsx";
 import UnknownCard from "./UnknownCard.tsx";
 
-export default function WordGrid() {
+function WordGrid() {
   const { state, override, setManualIpa } = usePipeline();
 
   if (!state.results) {
@@ -104,3 +105,5 @@ export default function WordGrid() {
     </Flex>
   );
 }
+
+export default memo(WordGrid);

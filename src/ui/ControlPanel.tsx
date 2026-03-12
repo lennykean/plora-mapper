@@ -9,13 +9,8 @@ import {
 import { usePipeline } from "./hooks/use-pipeline.tsx";
 
 export default function ControlPanel() {
-  const { state, submit, updateOptions, setDisplayMode } = usePipeline();
-
-  function handleSubmit() {
-    const trimmed = state.draftText.trim();
-    if (!trimmed) return;
-    submit(trimmed);
-  }
+  const { state, updateOptions, setDisplayMode, setPhonemeDisplay } =
+    usePipeline();
 
   const stressValue = (() => {
     const pq = state.options.preferQualifier ?? [];
@@ -153,26 +148,50 @@ export default function ControlPanel() {
           />
         </Group>
 
+        <Button.Group>
+          <Button
+            size="compact-xs"
+            variant={state.displayMode !== "ipa" ? "filled" : "default"}
+            onClick={() => {
+              const wordsOn = state.displayMode !== "ipa";
+              const phonemesOn = state.displayMode !== "words";
+              if (wordsOn && !phonemesOn) return; // can't turn off the only one
+              const newWords = !wordsOn;
+              setDisplayMode(newWords && phonemesOn ? "both" : newWords ? "words" : "ipa");
+            }}
+          >
+            Words
+          </Button>
+          <Button
+            size="compact-xs"
+            variant={state.displayMode !== "words" ? "filled" : "default"}
+            onClick={() => {
+              const wordsOn = state.displayMode !== "ipa";
+              const phonemesOn = state.displayMode !== "words";
+              if (phonemesOn && !wordsOn) return; // can't turn off the only one
+              const newPhonemes = !phonemesOn;
+              setDisplayMode(wordsOn && newPhonemes ? "both" : newPhonemes ? "ipa" : "words");
+            }}
+          >
+            Phonemes
+          </Button>
+        </Button.Group>
+
         <Group gap={4}>
           <Text size="xs" c="dimmed">
-            Show
+            Type
           </Text>
           <SegmentedControl
             size="xs"
             data={[
-              { label: "Both", value: "both" },
-              { label: "Words", value: "words" },
+              { label: "PLORA", value: "plora" },
               { label: "IPA", value: "ipa" },
             ]}
-            value={state.displayMode}
-            onChange={(v) => setDisplayMode(v as "both" | "words" | "ipa")}
+            value={state.phonemeDisplay}
+            onChange={(v) => setPhonemeDisplay(v as "ipa" | "plora")}
           />
         </Group>
       </Group>
-
-      <Button size="xs" onClick={handleSubmit} loading={state.loading}>
-        Map
-      </Button>
     </Group>
   );
 }
