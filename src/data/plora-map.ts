@@ -15,13 +15,13 @@ const IPA_TO_PLORA: Record<string, string> = {
   ɔ: "B", // GA /sɔ/ ≈ RP /sɔː/
 
   // Long vowels
-  "iː": "E",
-  "ɑː": "R",
-  "ɔːɹ": "L", // OR (corn, more, floor) — must be before ɔː
-  "ɔːr": "L",
-  "ɔː": "B",
-  "uː": "Q",
-  "ɜː": "M",
+  iː: "E",
+  ɑː: "R",
+  ɔːɹ: "L", // OR (corn, more, floor) — must be before ɔː
+  ɔːr: "L",
+  ɔː: "B",
+  uː: "Q",
+  ɜː: "M",
 
   // Diphthongs
   eɪ: "A",
@@ -91,8 +91,8 @@ export function ipaToPlora(ipa: string): string {
   let remaining = ipa
     .replace(/^[/[\]]+|[/[\]]+$/g, "")
     .replace(/[ˈˌ.]/g, "")
-    .replace(/\u0361/g, "")   // tie bar (t͡ʃ → tʃ)
-    .replace(/\u032F/g, "")   // non-syllabic mark (eɪ̯ → eɪ)
+    .replace(/\u0361/g, "") // tie bar (t͡ʃ → tʃ)
+    .replace(/\u032F/g, "") // non-syllabic mark (eɪ̯ → eɪ)
     .replace(/\([^)]*\)/g, ""); // optional segments like (ɹ)
   let result = "";
 

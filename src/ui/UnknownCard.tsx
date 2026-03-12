@@ -91,7 +91,11 @@ export default function UnknownCard({
             c="red"
             ff={state.phonemeDisplay === "plora" ? PLORA_FONT : IPA_FONT}
             lh={1.2}
-            style={state.phonemeDisplay === "plora" ? { letterSpacing: "0.15em" } : undefined}
+            style={
+              state.phonemeDisplay === "plora"
+                ? { letterSpacing: "0.15em" }
+                : undefined
+            }
           >
             {manualIpa
               ? state.phonemeDisplay === "plora"

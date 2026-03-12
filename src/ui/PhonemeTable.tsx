@@ -82,24 +82,27 @@ const SCHWA: PhonemeRow[] = [
   { ipa: "ə", sound: "uh", example: "about", glyph: "@", qwerty: "@" },
 ];
 
-function Section({ title, rows, color }: { title: string; rows: PhonemeRow[]; color: string }) {
+function Section({
+  title,
+  rows,
+  color,
+}: {
+  title: string;
+  rows: PhonemeRow[];
+  color: string;
+}) {
   return (
     <>
       <Table.Tr>
-        <Table.Td
-          colSpan={5}
-          bg={color}
-          c="white"
-          fw={700}
-          ta="center"
-          py={6}
-        >
+        <Table.Td colSpan={5} bg={color} c="white" fw={700} ta="center" py={6}>
           {title}
         </Table.Td>
       </Table.Tr>
       {rows.map((row) => (
         <Table.Tr key={row.ipa + row.qwerty}>
-          <Table.Td ff={IPA_FONT} ta="center">{row.ipa}</Table.Td>
+          <Table.Td ff={IPA_FONT} ta="center">
+            {row.ipa}
+          </Table.Td>
           <Table.Td ta="center">{row.sound}</Table.Td>
           <Table.Td>{row.example}</Table.Td>
           <Table.Td
@@ -109,7 +112,9 @@ function Section({ title, rows, color }: { title: string; rows: PhonemeRow[]; co
           >
             {row.glyph}
           </Table.Td>
-          <Table.Td ta="center" fw={500}>{row.qwerty}</Table.Td>
+          <Table.Td ta="center" fw={500}>
+            {row.qwerty}
+          </Table.Td>
         </Table.Tr>
       ))}
     </>

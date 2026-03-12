@@ -157,7 +157,9 @@ export default function ControlPanel() {
               const phonemesOn = state.displayMode !== "words";
               if (wordsOn && !phonemesOn) return; // can't turn off the only one
               const newWords = !wordsOn;
-              setDisplayMode(newWords && phonemesOn ? "both" : newWords ? "words" : "ipa");
+              setDisplayMode(
+                newWords && phonemesOn ? "both" : newWords ? "words" : "ipa",
+              );
             }}
           >
             Words
@@ -170,7 +172,9 @@ export default function ControlPanel() {
               const phonemesOn = state.displayMode !== "words";
               if (phonemesOn && !wordsOn) return; // can't turn off the only one
               const newPhonemes = !phonemesOn;
-              setDisplayMode(wordsOn && newPhonemes ? "both" : newPhonemes ? "ipa" : "words");
+              setDisplayMode(
+                wordsOn && newPhonemes ? "both" : newPhonemes ? "ipa" : "words",
+              );
             }}
           >
             Phonemes
