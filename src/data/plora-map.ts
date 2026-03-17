@@ -71,6 +71,11 @@ const IPA_TO_PLORA: Record<string, string> = {
   w: "w",
   j: "y",
 
+  // Schwa + r = ER (must be before bare schwa)
+  əɹ: "M", // unstressed -er (mover, butter)
+  ər: "M",
+  ɚ: "M", // rhotic schwa (GA spelling of əɹ)
+
   // Schwa
   ə: "@",
 };
@@ -93,7 +98,7 @@ export function ipaToPlora(ipa: string): string {
     .replace(/[ˈˌ.]/g, "")
     .replace(/\u0361/g, "") // tie bar (t͡ʃ → tʃ)
     .replace(/\u032F/g, "") // non-syllabic mark (eɪ̯ → eɪ)
-    .replace(/\([^)]*\)/g, ""); // optional segments like (ɹ)
+    .replace(/\(([^)]*)\)/g, "$1"); // unwrap optional segments like (ɹ) → ɹ
   let result = "";
 
   while (remaining.length > 0) {
