@@ -195,6 +195,19 @@ export default function ControlPanel() {
             onChange={(v) => setPhonemeDisplay(v as "ipa" | "plora")}
           />
         </Group>
+
+        <Button
+          size="compact-xs"
+          variant="subtle"
+          color="gray"
+          onClick={async () => {
+            if (window.confirm("Clear the definition cache?")) {
+              await fetch("/api/clear-cache", { method: "POST" });
+            }
+          }}
+        >
+          Clear Cache
+        </Button>
       </Group>
     </Group>
   );

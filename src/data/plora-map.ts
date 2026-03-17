@@ -10,18 +10,24 @@ const IPA_TO_PLORA: Record<string, string> = {
   ʌ: "u",
   ʊ: "q",
 
-  // GA short vowels without length marks (map to closest RP equivalent)
-  ɑ: "B", // GA cot-caught merger: bare ɑ ≈ RP ɔː (aw)
-  ɔ: "B", // GA /sɔ/ ≈ RP /sɔː/
-
-  // Long vowels
+  // Long vowels (with and without length mark ː)
   iː: "E",
   ɑː: "R",
   ɔːɹ: "L", // OR (corn, more, floor) — must be before ɔː
   ɔːr: "L",
+  oːɹ: "L", // alternate OR (door, four)
+  oːr: "L",
   ɔː: "B",
+  oː: "B", // alternate AW
   uː: "Q",
   ɜː: "M",
+  ɜ: "M", // bare ER (e.g. "first" /fɜst/)
+
+  // GA short vowels without length marks
+  ɑ: "R", // /ɑ/ in GA = RP /ɑː/ (car, father)
+  ɔɹ: "L", // OR without length mark
+  ɔr: "L",
+  ɔ: "B", // /ɔ/ in GA = RP /ɔː/ (saw)
 
   // Diphthongs
   eɪ: "A",
@@ -75,6 +81,7 @@ const IPA_TO_PLORA: Record<string, string> = {
   əɹ: "M", // unstressed -er (mover, butter)
   ər: "M",
   ɚ: "M", // rhotic schwa (GA spelling of əɹ)
+  ɝ: "M", // rhotic ER (GA spelling of ɜːɹ)
 
   // Schwa
   ə: "@",
@@ -91,13 +98,15 @@ const SORTED_KEYS = Object.keys(IPA_TO_PLORA).sort(
  * Unknown phonemes are passed through unchanged.
  */
 export function ipaToPlora(ipa: string): string {
-  // Strip notation delimiters, stress marks, tie bars, non-syllabic marks,
+  // Strip notation delimiters, stress marks, tie bars, diacritics,
   // and parenthesized optional segments like (ɹ)
   let remaining = ipa
     .replace(/^[/[\]]+|[/[\]]+$/g, "")
     .replace(/[ˈˌ.]/g, "")
     .replace(/\u0361/g, "") // tie bar (t͡ʃ → tʃ)
     .replace(/\u032F/g, "") // non-syllabic mark (eɪ̯ → eɪ)
+    .replace(/\u0329/g, "") // syllabic mark (n̩ → n)
+    .replace(/\u0308/g, "") // diaeresis (ɪ̈ → ɪ, e.g. "his" /hɪ̈z/)
     .replace(/\(([^)]*)\)/g, "$1"); // unwrap optional segments like (ɹ) → ɹ
   let result = "";
 
@@ -112,7 +121,7 @@ export function ipaToPlora(ipa: string): string {
       }
     }
     if (!matched) {
-      // Pass through unmapped characters (e.g. length marks not caught above)
+      // Pass through unmapped characters
       result += remaining[0];
       remaining = remaining.slice(1);
     }

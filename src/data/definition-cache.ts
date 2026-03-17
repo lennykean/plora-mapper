@@ -68,6 +68,12 @@ export function set(word: string, entries: WiktionaryEntry[]): void {
     .run(word.toLowerCase(), JSON.stringify(entries));
 }
 
+export function clear(): void {
+  const instance = ensureDatabase();
+  if (!instance) return;
+  instance.exec("DELETE FROM definitions");
+}
+
 export function closeDatabase(): void {
   if (db) {
     db.close();

@@ -81,6 +81,22 @@ export default function apiPlugin(): Plugin {
         }
       });
 
+      server.middlewares.use("/api/clear-cache", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          return res.end();
+        }
+        try {
+          const cache = await import("../data/definition-cache.ts");
+          cache.clear();
+          json(res, { ok: true });
+        } catch (err: unknown) {
+          const httpErr = err as HttpError;
+          res.statusCode = httpErr.statusCode ?? 500;
+          json(res, { error: httpErr.message });
+        }
+      });
+
       server.middlewares.use("/api/disambiguate", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
