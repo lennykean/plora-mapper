@@ -95,6 +95,12 @@ ipcMain.handle(
   },
 );
 
+ipcMain.handle("cache:clear", async () => {
+  const { clear } = await import("../data/definition-cache.ts");
+  clear();
+  return { ok: true };
+});
+
 // --- App lifecycle ---
 
 app.on("before-quit", () => {

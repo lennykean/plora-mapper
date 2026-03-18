@@ -202,7 +202,11 @@ export default function ControlPanel() {
           color="gray"
           onClick={async () => {
             if (window.confirm("Clear the definition cache?")) {
-              await fetch("/api/clear-cache", { method: "POST" });
+              if (window.electronAPI) {
+                await window.electronAPI.invoke("cache:clear", {});
+              } else {
+                await fetch("/api/clear-cache", { method: "POST" });
+              }
             }
           }}
         >

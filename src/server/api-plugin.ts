@@ -87,8 +87,8 @@ export default function apiPlugin(): Plugin {
           return res.end();
         }
         try {
-          const cache = await import("../data/definition-cache.ts");
-          cache.clear();
+          const { clear } = await import("../data/definition-cache.ts");
+          clear();
           json(res, { ok: true });
         } catch (err: unknown) {
           const httpErr = err as HttpError;

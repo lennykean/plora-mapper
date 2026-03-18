@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-const ALLOWED_CHANNELS = ["pipeline:run", "pipeline:disambiguate"] as const;
+const ALLOWED_CHANNELS = [
+  "pipeline:run",
+  "pipeline:disambiguate",
+  "cache:clear",
+] as const;
 type Channel = (typeof ALLOWED_CHANNELS)[number];
 
 contextBridge.exposeInMainWorld("electronAPI", {

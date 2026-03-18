@@ -10,7 +10,7 @@ export interface PipelineService {
   redisambiguate(request: DisambiguateRequest): Promise<DisambiguateResponse>;
 }
 
-type ElectronChannel = "pipeline:run" | "pipeline:disambiguate";
+type ElectronChannel = "pipeline:run" | "pipeline:disambiguate" | "cache:clear";
 
 declare global {
   interface Window {
